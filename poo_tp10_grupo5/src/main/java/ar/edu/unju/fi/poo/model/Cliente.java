@@ -6,15 +6,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
-@Table(name = "clientes", uniqueConstraints = {
-    @UniqueConstraint(columnNames = "numeroIdentificacion"),
-    @UniqueConstraint(columnNames = "email")
-})
+@Table(name = "clientes")
 public class Cliente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idCliente;
+    private Integer idCliente;
 
     @NotBlank(message = "El número de identificación no puede estar vacío")
     @Column(nullable = false, unique = true, length = 20)
@@ -60,8 +57,8 @@ public class Cliente {
         this.tipoCliente = tipoCliente;
     }
 
-    public Long getIdCliente() { return idCliente; }
-    public void setIdCliente(Long idCliente) { this.idCliente = idCliente; }
+    public Integer getIdCliente() { return idCliente; }
+    public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
 
     public String getNumeroIdentificacion() { return numeroIdentificacion; }
     public void setNumeroIdentificacion(String numeroIdentificacion) { this.numeroIdentificacion = numeroIdentificacion; }

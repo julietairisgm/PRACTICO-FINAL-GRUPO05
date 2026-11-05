@@ -1,4 +1,4 @@
-package ar.edu.unju.fi.poo.service;
+package ar.edu.unju.fi.poo.exceptions;
 
 public class CategoriaNoEncontradaException extends RuntimeException {
 

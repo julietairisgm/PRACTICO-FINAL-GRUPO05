@@ -3,30 +3,13 @@ package ar.edu.unju.fi.poo.service;
 import ar.edu.unju.fi.poo.model.Cliente;
 import ar.edu.unju.fi.poo.repository.ClienteRepository;
 import org.springframework.stereotype.Service;
+import ar.edu.unju.fi.poo.exceptions.ClienteNoEncontradoException;
+import ar.edu.unju.fi.poo.exceptions.ClienteDuplicadoException;
 
 import java.util.List;
 
 @Service
 public class ClienteService {
-
-    // Excepciones integradas en la misma clase
-    public static class ClienteNoEncontradoException extends RuntimeException {
-        
-		private static final long serialVersionUID = 1L;
-
-		public ClienteNoEncontradoException(String mensaje) {
-            super(mensaje);
-        }
-    }
-
-    public static class ClienteDuplicadoException extends RuntimeException {
-        
-		private static final long serialVersionUID = 1L;
-
-		public ClienteDuplicadoException(String mensaje) {
-            super(mensaje);
-        }
-    }
 
     private final ClienteRepository clienteRepository;
 
@@ -61,7 +44,7 @@ public class ClienteService {
         return clienteRepository.findAll();
     }
 
-    public List<Cliente> listarTodos1() {
+    /*public List<Cliente> listarTodos1() {
         return clienteRepository.findAll();
-    }
+    }*/
 }

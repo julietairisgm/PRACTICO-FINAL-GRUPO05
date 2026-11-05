@@ -1,8 +1,9 @@
 package ar.edu.unju.fi.poo.service;
 
+import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
+import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
 import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.repository.ProductoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,8 +12,11 @@ import java.util.List;
 @Service
 public class ProductoServiceImp implements ProductoService {
 
-    @Autowired
-    private ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository;
+
+    ProductoServiceImp(ProductoRepository productoRepository) {
+        this.productoRepository = productoRepository;
+    }
 
     @Override
     @Transactional
@@ -77,6 +81,6 @@ public class ProductoServiceImp implements ProductoService {
         }
 
         producto.reducirStock(cantidadAComprar);
-        productoRepository.save(producto);
+        //productoRepository.save(producto);
     }
 }

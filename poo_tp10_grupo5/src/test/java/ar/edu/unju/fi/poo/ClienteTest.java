@@ -2,31 +2,25 @@ package ar.edu.unju.fi.poo;
 
 import ar.edu.unju.fi.poo.model.Cliente;
 import ar.edu.unju.fi.poo.model.TipoCliente;
-import ar.edu.unju.fi.poo.repository.ClienteRepository;
 import ar.edu.unju.fi.poo.service.ClienteService;
+import jakarta.transaction.Transactional;
+import ar.edu.unju.fi.poo.exceptions.ClienteNoEncontradoException;
+import ar.edu.unju.fi.poo.exceptions.ClienteDuplicadoException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@Transactional
 class ClienteTest {
 
-    @Mock
-    private ClienteRepository clienteRepository;
-
-    @InjectMocks
-    private ClienteService clienteService;
+	@Autowired
+    private ClienteService clienteService; 
 
     private Cliente clientePrueba;
 
@@ -34,38 +28,36 @@ class ClienteTest {
     void setUp() {
         // Cliente configurado con datos genéricos / Test
         clientePrueba = new Cliente("12345678", "Test", "TestApellido", null, "3884000000", "test@mail.com", "Direccion Test 123", TipoCliente.PARTICULAR);
-        clientePrueba.setIdCliente(1L);
     }
 
     @Test
     void guardarClienteExitoso() {
-        when(clienteRepository.existsByNumeroIdentificacion(any())).thenReturn(false);
-        when(clienteRepository.existsByEmail(any())).thenReturn(false);
-        when(clienteRepository.save(any(Cliente.class))).thenReturn(clientePrueba);
 
         Cliente resultado = clienteService.guardarCliente(clientePrueba);
 
         assertNotNull(resultado);
+        assertNotNull(resultado.getIdCliente());
         assertEquals("12345678", resultado.getNumeroIdentificacion());
-        verify(clienteRepository, times(1)).save(clientePrueba);
     }
 
     @Test
     void guardarClienteFallaPorDuplicado() {
-        when(clienteRepository.existsByNumeroIdentificacion("12345678")).thenReturn(true);
+    	clienteService.guardarCliente(clientePrueba);
 
-        assertThrows(ClienteService.ClienteDuplicadoException.class, () -> {
-            clienteService.guardarCliente(clientePrueba);
+        Cliente clienteDuplicado = new Cliente("12345678", "Laura", "Mamani", null, "3884111111", "lauratest@mail.com", "Calle Falsa 123", TipoCliente.PARTICULAR);
+
+        assertThrows(ClienteDuplicadoException.class, () -> {
+            clienteService.guardarCliente(clienteDuplicado);
         });
-
-        verify(clienteRepository, never()).save(any());
     }
 
     @Test
     void buscarPorNumeroIdentificacionExitoso() {
-        when(clienteRepository.findByNumeroIdentificacion("12345678")).thenReturn(Optional.of(clientePrueba));
+    	clienteService.guardarCliente(clientePrueba);
 
-        Cliente resultado = clienteService.buscarPorNumeroIdentificacion("12345678");
+        Cliente resultado = clienteService.buscarPorNumeroIdentificacion(
+            clientePrueba.getNumeroIdentificacion()
+        );
 
         assertNotNull(resultado);
         assertEquals("Test", resultado.getNombre());
@@ -73,16 +65,14 @@ class ClienteTest {
 
     @Test
     void buscarPorNumeroIdentificacionNoEncontradoLanzaExcepcion() {
-        when(clienteRepository.findByNumeroIdentificacion("99999999")).thenReturn(Optional.empty());
-
-        assertThrows(ClienteService.ClienteNoEncontradoException.class, () -> {
+        assertThrows(ClienteNoEncontradoException.class, () -> {
             clienteService.buscarPorNumeroIdentificacion("99999999");
         });
     }
 
     @Test
     void buscarPorNombreORazonSocialExitoso() {
-        when(clienteRepository.buscarPorNombreORazonSocial("Test")).thenReturn(List.of(clientePrueba));
+    	clienteService.guardarCliente(clientePrueba);
 
         List<Cliente> resultados = clienteService.buscarPorNombreORazonSocial("Test");
 
@@ -92,9 +82,7 @@ class ClienteTest {
 
     @Test
     void buscarPorNombreORazonSocialVacioLanzaExcepcion() {
-        when(clienteRepository.buscarPorNombreORazonSocial("Inexistente")).thenReturn(Collections.emptyList());
-
-        assertThrows(ClienteService.ClienteNoEncontradoException.class, () -> {
+        assertThrows(ClienteNoEncontradoException.class, () -> {
             clienteService.buscarPorNombreORazonSocial("Inexistente");
         });
     }

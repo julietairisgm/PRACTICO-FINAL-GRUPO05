@@ -21,8 +21,7 @@ public class Categoria {
 
     public Categoria() {}
 
-    public Categoria(Integer idCategoria, String nombre) {
-        this.idCategoria = idCategoria;
+    public Categoria(String nombre) {
         this.nombre = nombre;
     }
 

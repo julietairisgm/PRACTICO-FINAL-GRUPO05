@@ -1,11 +1,11 @@
 package ar.edu.unju.fi.poo;
 
+import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
+import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
 import ar.edu.unju.fi.poo.model.Categoria;
 import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
 import ar.edu.unju.fi.poo.service.ProductoService;
-import ar.edu.unju.fi.poo.service.ProductoNoEncontradoException;
-import ar.edu.unju.fi.poo.service.StockInsuficienteException;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -46,7 +46,7 @@ public class Producto {
 
     // Métodos de lógica del UML
     public boolean tieneStockDisponible(int cantidad) {
-        return this.stock != null && this.stock >= cantidad;
+        return cantidad > 0 && this.stock != null && this.stock >= cantidad; // correccion de cantidad para evitar negativos
     }
 
     public void reducirStock(int cantidad) {

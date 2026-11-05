@@ -55,6 +55,10 @@ public abstract class Venta {
 	}
 	
 	public void agregarDetalle(DetalleVenta detalle) {
+		if (detalle == null) {
+	        throw new IllegalArgumentException("El detalle no puede ser nulo.");
+	    }
+		
 	    detalles.add(detalle);
 	    detalle.setVenta(this);
 	}

@@ -59,6 +59,10 @@ public class DetalleVenta {
     }
 
     public void setCantidad(Integer cantidad) {
+        if (cantidad == null || cantidad <= 0) {
+            throw new IllegalArgumentException("La cantidad debe ser mayor a cero.");
+        }
+
         this.cantidad = cantidad;
         calcularSubtotal();
     }
@@ -68,16 +72,16 @@ public class DetalleVenta {
     }
 
     public void setPrecioBaseAplicado(Double precioBaseAplicado) {
+        if (precioBaseAplicado == null || precioBaseAplicado < 0) {
+            throw new IllegalArgumentException("El precio base aplicado no puede ser negativo ni nulo.");
+        }
+
         this.precioBaseAplicado = precioBaseAplicado;
         calcularSubtotal();
     }
 
     public Double getSubtotal() {
         return subtotal;
-    }
-
-    public void setSubtotal(Double subtotal) {
-        this.subtotal = subtotal;
     }
 
     public Producto getProducto() {

@@ -1,6 +1,7 @@
 package ar.edu.unju.fi.poo.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -9,7 +10,7 @@ import jakarta.persistence.Table;
 @Table(name = "ventas_contado")
 public class VentaContado extends Venta {
 
-    @OneToOne
+	@OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_cupon", unique = true)
     private Cupon cupon;
 

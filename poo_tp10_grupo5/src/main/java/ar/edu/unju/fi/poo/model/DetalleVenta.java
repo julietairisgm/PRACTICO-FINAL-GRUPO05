@@ -23,6 +23,10 @@ public class DetalleVenta {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_producto", nullable = false)
     private Producto producto;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_venta", nullable = false)
+    private Venta venta;
 
     public DetalleVenta() {}
 
@@ -56,6 +60,7 @@ public class DetalleVenta {
 
     public void setCantidad(Integer cantidad) {
         this.cantidad = cantidad;
+        calcularSubtotal();
     }
 
     public Double getPrecioBaseAplicado() {
@@ -64,6 +69,7 @@ public class DetalleVenta {
 
     public void setPrecioBaseAplicado(Double precioBaseAplicado) {
         this.precioBaseAplicado = precioBaseAplicado;
+        calcularSubtotal();
     }
 
     public Double getSubtotal() {
@@ -80,5 +86,13 @@ public class DetalleVenta {
 
     public void setProducto(Producto producto) {
         this.producto = producto;
+    }
+    
+    public Venta getVenta() {
+        return venta;
+    }
+
+    public void setVenta(Venta venta) {
+        this.venta = venta;
     }
 }

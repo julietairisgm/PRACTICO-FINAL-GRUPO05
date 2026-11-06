@@ -13,10 +13,10 @@ import ar.edu.unju.fi.poo.model.Venta;
 public interface VentaRepository extends JpaRepository<Venta, Integer> {
 
     // Historial de ventas de un cliente
-    List<Venta> findByCliente(Integer idCliente);
+	List<Venta> findByCliente_IdCliente(Integer idCliente);
 
     // Ventas dentro de un rango de fechas
-    List<Venta> findByRangoFechaVenta(LocalDate fechaDesde, LocalDate fechaHasta);
+    List<Venta> findByFechaVentaBetween(LocalDate fechaDesde, LocalDate fechaHasta);
 
     @Query("SELECT v FROM Venta v WHERE TYPE(v) = VentaContado")
     List<Venta> findVentasContado();

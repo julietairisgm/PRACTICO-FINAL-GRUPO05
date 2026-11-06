@@ -98,7 +98,7 @@ public class VentaServiceImp implements VentaService {
 
     @Override
     public List<Venta> buscarHistorialPorCliente(Integer idCliente) {
-        return ventaRepository.findByCliente(idCliente);
+    	return ventaRepository.findByCliente_IdCliente(idCliente);
     }
 
     @Override
@@ -106,7 +106,7 @@ public class VentaServiceImp implements VentaService {
         if (fechaDesde == null || fechaHasta == null || fechaDesde.isAfter(fechaHasta)) {
             throw new VentaInvalidaException("El rango de fechas no es válido.");
         }
-        return ventaRepository.findByRangoFechaVenta(fechaDesde, fechaHasta);
+        return ventaRepository.findByFechaVentaBetween(fechaDesde, fechaHasta);
     }
 
     @Override
@@ -117,6 +117,6 @@ public class VentaServiceImp implements VentaService {
         if (modalidad.equalsIgnoreCase("CONTADO")) {
             return ventaRepository.findVentasContado();
         }
-        throw new VentaInvalidaException("La modalidad indicada no es válida o todavía no está implementada.");
+        throw new VentaInvalidaException("La modalidad indicada no es válida.");
     }
 }

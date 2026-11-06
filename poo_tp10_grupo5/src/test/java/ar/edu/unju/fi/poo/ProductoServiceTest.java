@@ -26,16 +26,16 @@ public class ProductoServiceTest {
 
     @Test
     void testGuardarProductoEnBaseDeDatos() {
-        // 1. Guardar una categoría real en MySQL
+        // Guardar una categoría real en MySQL
         Categoria categoria = new Categoria();
         categoria.setNombre("Electrónica");
         categoria = categoriaRepository.save(categoria);
 
-        // 2. Crear y guardar el producto en MySQL
+        // Crear y guardar el producto en MySQL
         Producto producto = new Producto("Notebook", "Laptop Gamer", "Asus", 10, 150000.0, categoria);
         Producto guardado = productoService.guardarProducto(producto);
 
-        // 3. Verificaciones
+        // Verificaciones
         assertNotNull(guardado.getIdProducto());
         assertEquals("Notebook", guardado.getNombre());
     }

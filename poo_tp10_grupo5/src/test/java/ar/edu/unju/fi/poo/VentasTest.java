@@ -1,0 +1,224 @@
+package ar.edu.unju.fi.poo;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ar.edu.unju.fi.poo.exceptions.*;
+import ar.edu.unju.fi.poo.model.Categoria;
+import ar.edu.unju.fi.poo.model.Cliente;
+import ar.edu.unju.fi.poo.model.DetalleVenta;
+import ar.edu.unju.fi.poo.model.Producto;
+import ar.edu.unju.fi.poo.model.TipoCliente;
+import ar.edu.unju.fi.poo.model.Venta;
+import ar.edu.unju.fi.poo.model.VentaContado;
+import ar.edu.unju.fi.poo.repository.CategoriaRepository;
+import ar.edu.unju.fi.poo.service.ClienteService;
+import ar.edu.unju.fi.poo.service.ProductoService;
+import ar.edu.unju.fi.poo.service.VentaService;
+import jakarta.transaction.Transactional;
+
+
+@SpringBootTest
+@Transactional
+public class VentasTest {
+	@Autowired
+	private VentaService ventaService;
+
+	@Autowired
+	private ProductoService productoService;
+
+	@Autowired
+	private ClienteService clienteService;
+	
+	@Autowired
+    private CategoriaRepository categoriaRepository;
+	
+	private Cliente cliente;
+	private Categoria categoria;
+	private Producto producto;
+
+	@BeforeEach
+	void setUp() {
+	    Cliente nuevoCliente = new Cliente("22334455", "Ana", "Lopez", null,"3884000000", "ana@test.com","San Salvador de Jujuy", TipoCliente.PARTICULAR);
+	    cliente = clienteService.guardarCliente(nuevoCliente);
+
+	    categoria = new Categoria();
+	    categoria.setNombre("Electrodomésticos");
+	    categoria = categoriaRepository.save(categoria);
+
+	    Producto nuevoProducto = new Producto("Cafetera", "Expreso", "Oster", 10, 25000.0, categoria);
+	    producto = productoService.guardarProducto(nuevoProducto);
+	}
+
+	@Test
+	@DisplayName("Debe registrar una venta de contado correctamente")
+	void testRegistrarVentaContado() {
+	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-001");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.setCliente(cliente);
+	    venta.agregarDetalle(detalle);
+
+	    VentaContado ventaGuardada = ventaService.registrarVentaContado(venta);
+
+	    assertNotNull(ventaGuardada.getIdVenta());
+	    assertEquals(50000.0, ventaGuardada.getSubtotal());
+	    assertEquals(50000.0, ventaGuardada.getTotal());
+	}
+	
+	@Test
+	@DisplayName("No debe registrar una venta nula")
+	void testRegistrarVentaNula() {
+	    assertThrows(VentaInvalidaException.class, () -> {
+	        ventaService.registrarVentaContado(null);
+	    });
+	}
+	
+	@Test
+	@DisplayName("No debe registrar una venta sin detalles")
+	void testRegistrarVentaSinDetalles() {
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-002");
+	    venta.setFechaVenta(LocalDate.now());
+
+	    assertThrows(VentaInvalidaException.class, () -> {
+	        ventaService.registrarVentaContado(venta);
+	    });
+	}
+	
+	@Test
+	@DisplayName("No debe registrar una venta con cantidad inválida")
+	void testRegistrarVentaConCantidadInvalida() {
+	    DetalleVenta detalle = new DetalleVenta(0, producto.getPrecioBase(), producto);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-003");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.agregarDetalle(detalle);
+
+	    assertThrows(VentaInvalidaException.class, () -> {
+	        ventaService.registrarVentaContado(venta);
+	    });
+	}
+	
+	@Test
+	@DisplayName("No debe registrar una venta con un producto inexistente")
+	void testRegistrarVentaConProductoInexistente() {
+	    Producto productoInexistente = new Producto();
+	    productoInexistente.setIdProducto(999999);
+	    DetalleVenta detalle = new DetalleVenta(1,25000.0,productoInexistente);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-004");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.agregarDetalle(detalle);
+
+	    assertThrows(ProductoNoEncontradoException.class, () -> {
+	        ventaService.registrarVentaContado(venta);
+	    });
+	}
+	
+	@Test
+	@DisplayName("No debe registrar una venta con stock insuficiente")
+	void testRegistrarVentaConStockInsuficiente() {
+	    DetalleVenta detalle = new DetalleVenta(11, producto.getPrecioBase(), producto);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-005");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.agregarDetalle(detalle);
+
+	    assertThrows(StockInsuficienteException.class, () -> {
+	        ventaService.registrarVentaContado(venta);
+	    });
+	}
+	
+	@Test
+	@DisplayName("Debe buscar el historial de ventas de un cliente")
+	void testBuscarHistorialPorCliente() {
+	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-HIST-001");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.setCliente(cliente);
+	    venta.agregarDetalle(detalle);
+
+	    VentaContado ventaGuardada = ventaService.registrarVentaContado(venta);
+
+	    List<Venta> historial = ventaService.buscarHistorialPorCliente(cliente.getIdCliente());
+
+	    assertFalse(historial.isEmpty());
+	    assertTrue(historial.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
+	}
+	
+	@Test
+	@DisplayName("Debe buscar ventas dentro de un rango de fechas")
+	void testBuscarPorRangoFechas() {
+	    DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-FECHA-001");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.setCliente(cliente);
+	    venta.agregarDetalle(detalle);
+
+	    VentaContado ventaGuardada = ventaService.registrarVentaContado(venta);
+
+	    List<Venta> ventas = ventaService.buscarPorRangoFechas(LocalDate.now().minusDays(1), LocalDate.now().plusDays(1));
+
+	    assertTrue(ventas.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
+	}
+	
+	@Test
+	@DisplayName("Debe rechazar un rango de fechas inválido")
+	void testBuscarPorRangoFechasInvalido() {
+	    assertThrows(VentaInvalidaException.class, () -> {
+	        ventaService.buscarPorRangoFechas(
+	            LocalDate.now(),
+	            LocalDate.now().minusDays(1)
+	        );
+	    });
+	}
+	
+	@Test
+	@DisplayName("Debe buscar ventas por modalidad")
+	void testBuscarPorModalidad() {
+	    DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-MOD-001");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.setCliente(cliente);
+	    venta.agregarDetalle(detalle);
+
+	    VentaContado ventaGuardada = ventaService.registrarVentaContado(venta);
+
+	    List<Venta> ventas = ventaService.buscarPorModalidad("CONTADO");
+
+	    assertTrue(ventas.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
+	    assertTrue(ventaGuardada instanceof VentaContado);
+	}
+	
+	@Test
+	@DisplayName("Debe rechazar una modalidad inválida")
+	void testBuscarPorModalidadInvalida() {
+	    assertThrows(VentaInvalidaException.class, () -> {
+	        ventaService.buscarPorModalidad("OTRA");
+	    });
+	}
+}

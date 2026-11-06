@@ -34,7 +34,6 @@ public class VentaContado extends Venta {
     	if (cupon == null || !cupon.esValido()) {
             throw new IllegalArgumentException("El cupón no es válido.");
         }
-
         this.cupon = cupon;
     }
 

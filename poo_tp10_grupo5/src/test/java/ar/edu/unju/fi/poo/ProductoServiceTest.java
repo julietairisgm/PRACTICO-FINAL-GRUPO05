@@ -7,6 +7,7 @@ import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
 import ar.edu.unju.fi.poo.service.ProductoService;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,6 +26,7 @@ public class ProductoServiceTest {
     private CategoriaRepository categoriaRepository;
 
     @Test
+    @DisplayName("Debe guardar un producto correctamente en la base de datos")
     void testGuardarProductoEnBaseDeDatos() {
         // Guardar una categoría real en MySQL
         Categoria categoria = new Categoria();
@@ -41,6 +43,7 @@ public class ProductoServiceTest {
     }
 
     @Test
+    @DisplayName("Debe buscar un producto por su ID correctamente")
     void testBuscarPorIdExitoso() {
         Categoria categoria = new Categoria();
         categoria.setNombre("Periféricos");
@@ -56,6 +59,7 @@ public class ProductoServiceTest {
     }
 
     @Test
+    @DisplayName("Debe lanzar una excepción cuando el producto no existe")
     void testBuscarPorIdLanzaExcepcionCuandoNoExiste() {
         assertThrows(ProductoNoEncontradoException.class, () -> {
             productoService.buscarPorId(99999);
@@ -63,6 +67,7 @@ public class ProductoServiceTest {
     }
 
     @Test
+    @DisplayName("Debe confirmar la disponibilidad cuando hay stock suficiente")
     void testConsultarDisponibilidadStockSuficiente() {
         Categoria categoria = new Categoria();
         categoria.setNombre("Monitores");
@@ -77,6 +82,7 @@ public class ProductoServiceTest {
     }
 
     @Test
+    @DisplayName("Debe actualizar el stock correctamente en la base de datos")
     void testActualizarStockExitosoEnBD() {
         Categoria categoria = new Categoria();
         categoria.setNombre("Accesorios");
@@ -93,6 +99,7 @@ public class ProductoServiceTest {
     }
 
     @Test
+    @DisplayName("Debe lanzar una excepción al intentar actualizar con stock insuficiente")
     void testActualizarStockLanzaExcepcionPorStockInsuficiente() {
         Categoria categoria = new Categoria();
         categoria.setNombre("Audio");
@@ -107,6 +114,7 @@ public class ProductoServiceTest {
     }
 
     @Test
+    @DisplayName("Debe encontrar los productos con stock crítico")
     void testBuscarProductosConStockCritico() {
         Categoria categoria = new Categoria();
         categoria.setNombre("Almacenamiento");

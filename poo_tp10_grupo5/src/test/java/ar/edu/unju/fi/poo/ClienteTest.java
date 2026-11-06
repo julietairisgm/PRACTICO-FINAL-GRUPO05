@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional;
 import ar.edu.unju.fi.poo.exceptions.ClienteNoEncontradoException;
 import ar.edu.unju.fi.poo.exceptions.ClienteDuplicadoException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,13 +27,12 @@ class ClienteTest {
 
     @BeforeEach
     void setUp() {
-        // Cliente configurado con datos genéricos / Test
         clientePrueba = new Cliente("12345678", "Test", "TestApellido", null, "3884000000", "test@mail.com", "Direccion Test 123", TipoCliente.PARTICULAR);
     }
 
     @Test
+    @DisplayName("Debe guardar un cliente correctamente")
     void guardarClienteExitoso() {
-
         Cliente resultado = clienteService.guardarCliente(clientePrueba);
 
         assertNotNull(resultado);
@@ -41,6 +41,7 @@ class ClienteTest {
     }
 
     @Test
+    @DisplayName("Debe lanzar una excepción al guardar un cliente duplicado")
     void guardarClienteFallaPorDuplicado() {
     	clienteService.guardarCliente(clientePrueba);
 
@@ -52,6 +53,7 @@ class ClienteTest {
     }
 
     @Test
+    @DisplayName("Debe buscar un cliente por su número de identificación")
     void buscarPorNumeroIdentificacionExitoso() {
     	clienteService.guardarCliente(clientePrueba);
 
@@ -64,6 +66,7 @@ class ClienteTest {
     }
 
     @Test
+    @DisplayName("Debe lanzar una excepción si no encuentra el cliente por identificación")
     void buscarPorNumeroIdentificacionNoEncontradoLanzaExcepcion() {
         assertThrows(ClienteNoEncontradoException.class, () -> {
             clienteService.buscarPorNumeroIdentificacion("99999999");
@@ -71,6 +74,7 @@ class ClienteTest {
     }
 
     @Test
+    @DisplayName("Debe buscar clientes por nombre o razón social")
     void buscarPorNombreORazonSocialExitoso() {
     	clienteService.guardarCliente(clientePrueba);
 
@@ -81,6 +85,7 @@ class ClienteTest {
     }
 
     @Test
+    @DisplayName("Debe lanzar una excepción cuando no encuentra clientes por nombre o razón social")
     void buscarPorNombreORazonSocialVacioLanzaExcepcion() {
         assertThrows(ClienteNoEncontradoException.class, () -> {
             clienteService.buscarPorNombreORazonSocial("Inexistente");

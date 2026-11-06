@@ -29,7 +29,7 @@ import ar.edu.unju.fi.poo.model.VentaFinanciada;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
 import ar.edu.unju.fi.poo.service.ClienteService;
 import ar.edu.unju.fi.poo.service.ProductoService;
-import ar.edu.unju.fi.poo.service.VentaFinanciadaService;
+import ar.edu.unju.fi.poo.service.VentaService;
 import jakarta.transaction.Transactional;
 
 @SpringBootTest
@@ -37,7 +37,7 @@ import jakarta.transaction.Transactional;
 public class VentaFinanciadaTest {
 
     @Autowired
-    private VentaFinanciadaService ventaFinanciadaService;
+    private VentaService ventaService;
 
     @Autowired
     private ProductoService productoService;
@@ -70,23 +70,21 @@ public class VentaFinanciadaTest {
     void testRegistrarVentaFinanciadaExitoso() {
         DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
 
-        VentaFinanciada venta = new VentaFinanciada("VF-001", LocalDate.now(), cliente, 10.0); // 10% de recargo
+        VentaFinanciada venta = new VentaFinanciada("VF-001", LocalDate.now(), cliente, 10.0);
         venta.agregarDetalle(detalle);
 
-        VentaFinanciada guardada = ventaFinanciadaService.registrarVentaFinanciada(venta);
+        VentaFinanciada guardada = ventaService.registrarVentaFinanciada(venta);
 
         assertNotNull(guardada.getIdVenta());
         assertEquals(100000.0, guardada.getSubtotal());
         assertEquals(10000.0, guardada.aplicarRecargo());
         assertEquals(110000.0, guardada.getTotal());
 
-        // Verificacion de las 6 cuotas fijas generadas en estado ADEUDADA
         List<Cuota> cuotas = guardada.getCuotas();
         assertEquals(6, cuotas.size());
         assertEquals(110000.0 / 6, cuotas.get(0).getImporte());
         assertEquals(EstadoCuota.ADEUDADA, cuotas.get(0).getEstado());
 
-        // Verificacion de actualización de stock
         Producto productoActualizado = productoService.buscarPorId(producto.getIdProducto());
         assertEquals(9, productoActualizado.getStock());
     }
@@ -97,9 +95,9 @@ public class VentaFinanciadaTest {
         DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
         VentaFinanciada venta = new VentaFinanciada("VF-002", LocalDate.now(), cliente, 15.0);
         venta.agregarDetalle(detalle);
-        ventaFinanciadaService.registrarVentaFinanciada(venta);
+        ventaService.registrarVentaFinanciada(venta);
 
-        List<Cuota> cuotasPendientes = ventaFinanciadaService.consultarEstadoCuentaCuotasPendientes(cliente.getIdCliente());
+        List<Cuota> cuotasPendientes = ventaService.consultarEstadoCuentaCuotasPendientes(cliente.getIdCliente());
 
         assertFalse(cuotasPendientes.isEmpty());
         assertEquals(6, cuotasPendientes.size());
@@ -107,14 +105,14 @@ public class VentaFinanciadaTest {
     }
 
     @Test
-    @DisplayName("Debe consultar cuotas pendientes por numero de identificación (DNI/CUIT)")
+    @DisplayName("Debe consultar cuotas pendientes por número de identificación (DNI/CUIT)")
     void testConsultarEstadoCuentaPorIdentificacion() {
         DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
         VentaFinanciada venta = new VentaFinanciada("VF-003", LocalDate.now(), cliente, 10.0);
         venta.agregarDetalle(detalle);
-        ventaFinanciadaService.registrarVentaFinanciada(venta);
+        ventaService.registrarVentaFinanciada(venta);
 
-        List<Cuota> cuotasPendientes = ventaFinanciadaService.consultarEstadoCuentaCuotasPendientesPorIdentificacion(cliente.getNumeroIdentificacion());
+        List<Cuota> cuotasPendientes = ventaService.consultarEstadoCuentaCuotasPendientesPorIdentificacion(cliente.getNumeroIdentificacion());
 
         assertEquals(6, cuotasPendientes.size());
     }
@@ -123,7 +121,7 @@ public class VentaFinanciadaTest {
     @DisplayName("No debe registrar una venta financiada nula")
     void testRegistrarVentaFinanciadaNula() {
         assertThrows(VentaFinanciadaInvalidaException.class, () -> {
-            ventaFinanciadaService.registrarVentaFinanciada(null);
+            ventaService.registrarVentaFinanciada(null);
         });
     }
 
@@ -133,7 +131,7 @@ public class VentaFinanciadaTest {
         VentaFinanciada venta = new VentaFinanciada("VF-004", LocalDate.now(), cliente, 10.0);
 
         assertThrows(VentaFinanciadaInvalidaException.class, () -> {
-            ventaFinanciadaService.registrarVentaFinanciada(venta);
+            ventaService.registrarVentaFinanciada(venta);
         });
     }
 
@@ -145,19 +143,19 @@ public class VentaFinanciadaTest {
         venta.agregarDetalle(detalle);
 
         assertThrows(VentaFinanciadaInvalidaException.class, () -> {
-            ventaFinanciadaService.registrarVentaFinanciada(venta);
+            ventaService.registrarVentaFinanciada(venta);
         });
     }
 
     @Test
     @DisplayName("No debe registrar una venta financiada si el stock es insuficiente")
     void testRegistrarVentaFinanciadaStockInsuficiente() {
-        DetalleVenta detalle = new DetalleVenta(15, producto.getPrecioBase(), producto); // solo hay 10
+        DetalleVenta detalle = new DetalleVenta(15, producto.getPrecioBase(), producto);
         VentaFinanciada venta = new VentaFinanciada("VF-006", LocalDate.now(), cliente, 10.0);
         venta.agregarDetalle(detalle);
 
         assertThrows(StockInsuficienteException.class, () -> {
-            ventaFinanciadaService.registrarVentaFinanciada(venta);
+            ventaService.registrarVentaFinanciada(venta);
         });
     }
 
@@ -172,7 +170,7 @@ public class VentaFinanciadaTest {
         venta.agregarDetalle(detalle);
 
         assertThrows(ProductoNoEncontradoException.class, () -> {
-            ventaFinanciadaService.registrarVentaFinanciada(venta);
+            ventaService.registrarVentaFinanciada(venta);
         });
     }
 }

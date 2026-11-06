@@ -18,12 +18,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import ar.edu.unju.fi.poo.exceptions.*;
 import ar.edu.unju.fi.poo.model.Categoria;
 import ar.edu.unju.fi.poo.model.Cliente;
+import ar.edu.unju.fi.poo.model.Cupon;
 import ar.edu.unju.fi.poo.model.DetalleVenta;
 import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.model.TipoCliente;
 import ar.edu.unju.fi.poo.model.Venta;
 import ar.edu.unju.fi.poo.model.VentaContado;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
+import ar.edu.unju.fi.poo.repository.CuponRepository;
 import ar.edu.unju.fi.poo.service.ClienteService;
 import ar.edu.unju.fi.poo.service.ProductoService;
 import ar.edu.unju.fi.poo.service.VentaService;
@@ -45,9 +47,13 @@ public class VentasTest {
 	@Autowired
     private CategoriaRepository categoriaRepository;
 	
+	@Autowired
+    private CuponRepository cuponRepository;
+	
 	private Cliente cliente;
 	private Categoria categoria;
 	private Producto producto;
+	private Cupon cupon;
 
 	@BeforeEach
 	void setUp() {
@@ -60,6 +66,9 @@ public class VentasTest {
 
 	    Producto nuevoProducto = new Producto("Cafetera", "Expreso", "Oster", 10, 25000.0, categoria);
 	    producto = productoService.guardarProducto(nuevoProducto);
+	    
+	    cupon = new Cupon("DESC10", 10.0, LocalDate.now().plusDays(10));
+	    cuponRepository.save(cupon);
 	}
 
 	@Test
@@ -78,6 +87,59 @@ public class VentasTest {
 	    assertNotNull(ventaGuardada.getIdVenta());
 	    assertEquals(50000.0, ventaGuardada.getSubtotal());
 	    assertEquals(50000.0, ventaGuardada.getTotal());
+	}
+	
+	@Test
+	@DisplayName("Debe registrar una venta de contado aplicando el descuento del cupón")
+	void testRegistrarVentaContadoConCuponValido() {
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-CUP-001");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.setCliente(cliente);
+	    venta.setCupon(cupon);
+
+	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+	    venta.agregarDetalle(detalle);
+	    VentaContado guardada = ventaService.registrarVentaContado(venta);
+
+	    assertEquals(50000.0, guardada.getSubtotal());
+	    assertEquals(45000.0, guardada.getTotal());
+	    assertTrue(cuponRepository.findById(cupon.getIdCupon()).get().isUsado());
+	}
+	
+	@Test
+	@DisplayName("Debe rechazar una venta con un cupón vencido")
+	void testRegistrarVentaConCuponVencido() {
+	    Cupon cupon = new Cupon("DESCVENCIDO", 10.0, LocalDate.now().minusDays(1));
+	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-CUP-003");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.setCliente(cliente);
+	    venta.setCupon(cupon);
+	    venta.agregarDetalle(detalle);
+
+	    assertThrows(CuponInvalidoException.class, () -> ventaService.registrarVentaContado(venta));
+	}
+	
+	@Test
+	@DisplayName("Debe rechazar una venta con un cupón ya utilizado")
+	void testRegistrarVentaConCuponUtilizado() {
+	    Cupon cupon = new Cupon("DESCUENTOUSADO", 10.0, LocalDate.now().plusDays(10));
+	    cupon.setUsado(true);
+	    cupon = cuponRepository.save(cupon);
+	    
+	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+
+	    VentaContado venta = new VentaContado();
+	    venta.setCodigoComprobante("V-CUP-004");
+	    venta.setFechaVenta(LocalDate.now());
+	    venta.setCliente(cliente);
+	    venta.setCupon(cupon);
+	    venta.agregarDetalle(detalle);
+
+	    assertThrows(CuponInvalidoException.class, () -> ventaService.registrarVentaContado(venta));
 	}
 	
 	@Test

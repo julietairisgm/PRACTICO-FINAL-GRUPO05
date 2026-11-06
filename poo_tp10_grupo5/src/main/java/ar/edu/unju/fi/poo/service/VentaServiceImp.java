@@ -5,12 +5,12 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import ar.edu.unju.fi.poo.repository.CuponRepository;
 import ar.edu.unju.fi.poo.repository.ProductoRepository;
 import ar.edu.unju.fi.poo.repository.VentaRepository;
 import jakarta.transaction.Transactional;
-import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
-import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
-import ar.edu.unju.fi.poo.exceptions.VentaInvalidaException;
+import ar.edu.unju.fi.poo.exceptions.*;
+import ar.edu.unju.fi.poo.model.Cupon;
 import ar.edu.unju.fi.poo.model.DetalleVenta;
 import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.model.Venta;
@@ -21,20 +21,29 @@ public class VentaServiceImp implements VentaService {
 
     private final VentaRepository ventaRepository;
     private final ProductoRepository productoRepository;
+    private final CuponRepository cuponRepository;
 
-    public VentaServiceImp(VentaRepository ventaRepository, ProductoRepository productoRepository) {
+    public VentaServiceImp(VentaRepository ventaRepository, ProductoRepository productoRepository, CuponRepository cuponRepository){
         this.ventaRepository = ventaRepository;
         this.productoRepository = productoRepository;
+        this.cuponRepository = cuponRepository;
     }
 
     @Override
     @Transactional
     public VentaContado registrarVentaContado(VentaContado venta) {
         validarVenta(venta);
+        validarCupon(venta);
         obtenerProductosYValidarDetalles(venta);
         validarStockDisponible(venta);
         venta.calcularTotal();
         actualizarStock(venta);
+        
+        if (venta.getCupon() != null) {
+            venta.getCupon().setUsado(true);
+            cuponRepository.save(venta.getCupon());
+        }
+        
         return ventaRepository.save(venta);
     }
     
@@ -93,6 +102,20 @@ public class VentaServiceImp implements VentaService {
             producto.setStock(producto.getStock() - detalle.getCantidad());
             productoRepository.save(producto);
         }
+    }
+    
+    private void validarCupon(VentaContado venta) {
+        if (venta.getCupon() == null) { return; }
+
+        String codigo = venta.getCupon().getCodigo();
+        Cupon cupon = cuponRepository.buscarPorCodigo(codigo)
+                .orElseThrow(() -> new CuponInvalidoException("El cupón no existe."));
+
+        if (!cupon.esValido()) {
+            throw new CuponInvalidoException("El cupón está vencido o ya fue utilizado.");
+        }
+
+        venta.setCupon(cupon);
     }
     // ----------------------------------------------------------
 

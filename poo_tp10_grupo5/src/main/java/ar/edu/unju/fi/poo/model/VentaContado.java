@@ -22,11 +22,12 @@ public class VentaContado extends Venta {
         return cupon;
     }
     
+    public void setCupon(Cupon cupon) {
+        this.cupon = cupon;
+    }
+    
     public double calcularDescuento() {
-    	if (cupon == null || !cupon.esValido()) {
-            return 0.0;
-        }
-
+        if (cupon == null) { return 0.0; }
         return getSubtotal() * cupon.getPorcentajeDescuento() / 100;
     }
 

@@ -8,13 +8,13 @@ import java.util.List;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Integer> {
 
-    // Servicio de filtros por categoría, marca y rango de precios
+    // Servicio de filtros por categoria, marca y rango de precios
     List<Producto> findByCategoriaIdCategoria(Integer idCategoria);
 
     List<Producto> findByMarcaContainingIgnoreCase(String marca);
 
     List<Producto> findByPrecioBaseBetween(Double precioMin, Double precioMax);
 
-    // Consulta de productos con stock crítico o por debajo de un umbral
+    // Consulta de productos con stock critico o por debajo de un umbral
     List<Producto> findByStockLessThanEqual(Integer umbral);
 }

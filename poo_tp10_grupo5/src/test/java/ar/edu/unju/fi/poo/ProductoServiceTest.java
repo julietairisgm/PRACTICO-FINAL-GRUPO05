@@ -1,9 +1,10 @@
 package ar.edu.unju.fi.poo;
 
+import ar.edu.unju.fi.poo.dto.CategoriaDto;
+import ar.edu.unju.fi.poo.dto.ProductoDto;
 import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
 import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
 import ar.edu.unju.fi.poo.model.Categoria;
-import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
 import ar.edu.unju.fi.poo.service.ProductoService;
 
@@ -33,9 +34,20 @@ public class ProductoServiceTest {
         categoria.setNombre("Electrónica");
         categoria = categoriaRepository.save(categoria);
 
-        // Crear y guardar el producto en MySQL
-        Producto producto = new Producto("Notebook", "Laptop Gamer", "Asus", 10, 150000.0, categoria);
-        Producto guardado = productoService.guardarProducto(producto);
+        // Convertir la categoría a DTO
+        CategoriaDto categoriaDto = new CategoriaDto();
+        categoriaDto.setIdCategoria(categoria.getIdCategoria());
+
+        // Crear y guardar el producto
+        ProductoDto productoDto = new ProductoDto();
+        productoDto.setNombre("Notebook");
+        productoDto.setDescripcion("Laptop Gamer");
+        productoDto.setMarca("Asus");
+        productoDto.setStock(10);
+        productoDto.setPrecioBase(150000.0);
+        productoDto.setCategoriaDto(categoriaDto);
+
+        ProductoDto guardado = productoService.guardarProducto(productoDto);
 
         // Verificaciones
         assertNotNull(guardado.getIdProducto());
@@ -48,11 +60,20 @@ public class ProductoServiceTest {
         Categoria categoria = new Categoria();
         categoria.setNombre("Periféricos");
         categoria = categoriaRepository.save(categoria);
+        
+        CategoriaDto categoriaDto = new CategoriaDto();
+        categoriaDto.setIdCategoria(categoria.getIdCategoria());
 
-        Producto producto = new Producto("Teclado", "Mecánico RGB", "Redragon", 15, 45000.0, categoria);
-        Producto guardado = productoService.guardarProducto(producto);
+        ProductoDto productoDto = new ProductoDto();
+        productoDto.setNombre("Teclado");
+        productoDto.setDescripcion("Mecánico RGB");
+        productoDto.setMarca("Redragon");
+        productoDto.setStock(15);
+        productoDto.setPrecioBase(45000.0);
+        productoDto.setCategoriaDto(categoriaDto);
 
-        Producto encontrado = productoService.buscarPorId(guardado.getIdProducto());
+        ProductoDto guardado = productoService.guardarProducto(productoDto);
+        ProductoDto encontrado = productoService.buscarPorId(guardado.getIdProducto());
 
         assertNotNull(encontrado);
         assertEquals("Teclado", encontrado.getNombre());
@@ -73,9 +94,18 @@ public class ProductoServiceTest {
         categoria.setNombre("Monitores");
         categoria = categoriaRepository.save(categoria);
 
-        Producto producto = new Producto("Monitor 24'", "144Hz IPS", "LG", 8, 120000.0, categoria);
-        Producto guardado = productoService.guardarProducto(producto);
+        CategoriaDto categoriaDto = new CategoriaDto();
+        categoriaDto.setIdCategoria(categoria.getIdCategoria());
 
+        ProductoDto productoDto = new ProductoDto();
+        productoDto.setNombre("Monitor 24'");
+        productoDto.setDescripcion("144Hz IPS");
+        productoDto.setMarca("LG");
+        productoDto.setStock(8);
+        productoDto.setPrecioBase(120000.0);
+        productoDto.setCategoriaDto(categoriaDto);
+
+        ProductoDto guardado = productoService.guardarProducto(productoDto);
         boolean disponible = productoService.consultarDisponibilidad(guardado.getIdProducto(), 5);
 
         assertTrue(disponible);
@@ -88,13 +118,22 @@ public class ProductoServiceTest {
         categoria.setNombre("Accesorios");
         categoria = categoriaRepository.save(categoria);
 
-        Producto producto = new Producto("Mouse", "Óptico Wireless", "Logitech", 20, 15000.0, categoria);
-        Producto guardado = productoService.guardarProducto(producto);
+        CategoriaDto categoriaDto = new CategoriaDto();
+        categoriaDto.setIdCategoria(categoria.getIdCategoria());
 
+        ProductoDto productoDto = new ProductoDto();
+        productoDto.setNombre("Mouse");
+        productoDto.setDescripcion("Óptico Wireless");
+        productoDto.setMarca("Logitech");
+        productoDto.setStock(20);
+        productoDto.setPrecioBase(15000.0);
+        productoDto.setCategoriaDto(categoriaDto);
+
+        ProductoDto guardado = productoService.guardarProducto(productoDto);
         // Se descuentan 5 unidades en MySQL
         productoService.actualizarStock(guardado.getIdProducto(), 5);
 
-        Producto actualizado = productoService.buscarPorId(guardado.getIdProducto());
+        ProductoDto actualizado = productoService.buscarPorId(guardado.getIdProducto());
         assertEquals(15, actualizado.getStock());
     }
 
@@ -105,14 +144,23 @@ public class ProductoServiceTest {
         categoria.setNombre("Audio");
         categoria = categoriaRepository.save(categoria);
 
-        Producto producto = new Producto("Auriculares", "Bluetooth", "Sony", 3, 35000.0, categoria);
-        Producto guardado = productoService.guardarProducto(producto);
+        CategoriaDto categoriaDto = new CategoriaDto();
+        categoriaDto.setIdCategoria(categoria.getIdCategoria());
 
+        ProductoDto productoDto = new ProductoDto();
+        productoDto.setNombre("Auriculares");
+        productoDto.setDescripcion("Bluetooth");
+        productoDto.setMarca("Sony");
+        productoDto.setStock(3);
+        productoDto.setPrecioBase(35000.0);
+        productoDto.setCategoriaDto(categoriaDto);
+
+        ProductoDto guardado = productoService.guardarProducto(productoDto);
         assertThrows(StockInsuficienteException.class, () -> {
             productoService.actualizarStock(guardado.getIdProducto(), 10);
         });
     }
-
+    
     @Test
     @DisplayName("Debe encontrar los productos con stock crítico")
     void testBuscarProductosConStockCritico() {
@@ -120,12 +168,20 @@ public class ProductoServiceTest {
         categoria.setNombre("Almacenamiento");
         categoria = categoriaRepository.save(categoria);
 
-        // Stock por debajo del límite crítico (ej. 3 unidades)
-        Producto producto = new Producto("SSD 1TB", "NVMe M.2", "Kingston", 2, 85000.0, categoria);
-        productoService.guardarProducto(producto);
+        CategoriaDto categoriaDto = new CategoriaDto();
+        categoriaDto.setIdCategoria(categoria.getIdCategoria());
 
-        List<Producto> criticos = productoService.buscarProductosConStockCritico();
+        // Stock por debajo del límite crítico (20 unidades)
+        ProductoDto productoDto = new ProductoDto();
+        productoDto.setNombre("SSD 1TB");
+        productoDto.setDescripcion("NVMe M.2");
+        productoDto.setMarca("Kingston");
+        productoDto.setStock(2);
+        productoDto.setPrecioBase(85000.0);
+        productoDto.setCategoriaDto(categoriaDto);
 
+        productoService.guardarProducto(productoDto);
+        List<ProductoDto> criticos = productoService.buscarProductosConStockCritico();
         assertFalse(criticos.isEmpty());
     }
 }

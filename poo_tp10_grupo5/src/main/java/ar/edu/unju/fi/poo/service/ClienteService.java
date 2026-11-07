@@ -2,10 +2,9 @@ package ar.edu.unju.fi.poo.service;
 
 import ar.edu.unju.fi.poo.model.Cliente;
 import ar.edu.unju.fi.poo.repository.ClienteRepository;
-import org.springframework.stereotype.Service;
 import ar.edu.unju.fi.poo.exceptions.ClienteNoEncontradoException;
 import ar.edu.unju.fi.poo.exceptions.ClienteDuplicadoException;
-
+import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
@@ -44,7 +43,19 @@ public class ClienteService {
         return clienteRepository.findAll();
     }
 
-    /*public List<Cliente> listarTodos1() {
-        return clienteRepository.findAll();
-    }*/
+    public Cliente actualizarCliente(Integer id, Cliente clienteActualizado) {
+        Cliente clienteExistente = clienteRepository.findById(id)
+                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente con ID: " + id));
+        
+        clienteExistente.setNumeroIdentificacion(clienteActualizado.getNumeroIdentificacion());
+        clienteExistente.setNombre(clienteActualizado.getNombre());
+        clienteExistente.setApellido(clienteActualizado.getApellido());
+        clienteExistente.setRazonSocial(clienteActualizado.getRazonSocial());
+        clienteExistente.setTelefono(clienteActualizado.getTelefono());
+        clienteExistente.setEmail(clienteActualizado.getEmail());
+        clienteExistente.setDireccion(clienteActualizado.getDireccion());
+        clienteExistente.setTipoCliente(clienteActualizado.getTipoCliente());
+
+        return clienteRepository.save(clienteExistente);
+    }
 }

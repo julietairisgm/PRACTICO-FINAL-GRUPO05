@@ -84,22 +84,14 @@ public class ProductoController {
     
     // Consultar disponibilidad de stock
     @GetMapping("/{id}/disponibilidad")
-    public ResponseEntity<Boolean> consultarDisponibilidad(
-            @PathVariable Integer id,
-            @RequestParam Integer cantidad) {
-
-        return ResponseEntity.ok(
-                productoService.consultarDisponibilidad(id, cantidad));
+    public ResponseEntity<Boolean> consultarDisponibilidad(@PathVariable Integer id, @RequestParam Integer cantidad) {
+        return ResponseEntity.ok(productoService.consultarDisponibilidad(id, cantidad));
     }
     
     // Actualizar stock
-    @PutMapping("/{id}/stock")
-    public ResponseEntity<Void> actualizarStock(
-            @PathVariable Integer id,
-            @RequestParam Integer cantidadAComprar) {
-
+    @PatchMapping("/{id}/stock")
+    public void actualizarStock(@PathVariable Integer id, @RequestParam int cantidadAComprar) {
         productoService.actualizarStock(id, cantidadAComprar);
-        return ResponseEntity.noContent().build();
     }
     
     // Eliminar producto

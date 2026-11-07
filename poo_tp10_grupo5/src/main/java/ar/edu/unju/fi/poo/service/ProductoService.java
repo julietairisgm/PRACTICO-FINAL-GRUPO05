@@ -1,24 +1,30 @@
 package ar.edu.unju.fi.poo.service;
 
-import ar.edu.unju.fi.poo.model.Producto;
+import ar.edu.unju.fi.poo.dto.ProductoDto;
 import java.util.List;
 
 public interface ProductoService {
-
+	
+	// Listar todos los productos
+    List<ProductoDto> listarProductos();
+	
     //Guardar / Actualizar producto
-    Producto guardarProducto(Producto producto);
+    ProductoDto guardarProducto(ProductoDto productoDto);
+    
+    // Eliminar producto
+    void eliminarProducto(Integer id);
 
     //Búsqueda por ID
-    Producto buscarPorId(Integer id);
+    ProductoDto buscarPorId(Integer id);
 
     //Filtros por categoría, marca y rango de precios
-    List<Producto> buscarPorCategoria(Integer idCategoria);
-    List<Producto> buscarPorMarca(String marca);
-    List<Producto> buscarPorRangoDePrecio(Double precioMin, Double precioMax);
+    List<ProductoDto> buscarPorCategoria(Integer idCategoria);
+    List<ProductoDto> buscarPorMarca(String marca);
+    List<ProductoDto> buscarPorRangoDePrecio(Double precioMin, Double precioMax);
 
     //Consultar productos con stock crítico o por debajo de un umbral
-    List<Producto> buscarProductosConStockCritico();
-    List<Producto> buscarProductosPorDebajoDeUmbral(Integer umbral);
+    List<ProductoDto> buscarProductosConStockCritico();
+    List<ProductoDto> buscarProductosPorDebajoDeUmbral(Integer umbral);
 
     //Operaciones de disponibilidad y actualización de stock
     boolean consultarDisponibilidad(Integer idProducto, int cantidad);

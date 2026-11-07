@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import ar.edu.unju.fi.poo.dto.CategoriaDto;
+import ar.edu.unju.fi.poo.dto.ProductoDto;
 import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
 import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
 import ar.edu.unju.fi.poo.exceptions.VentaFinanciadaInvalidaException;
@@ -27,6 +29,7 @@ import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.model.TipoCliente;
 import ar.edu.unju.fi.poo.model.VentaFinanciada;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
+import ar.edu.unju.fi.poo.repository.ProductoRepository;
 import ar.edu.unju.fi.poo.service.ClienteService;
 import ar.edu.unju.fi.poo.service.ProductoService;
 import ar.edu.unju.fi.poo.service.VentaService;
@@ -48,9 +51,13 @@ public class VentaFinanciadaTest {
     @Autowired
     private CategoriaRepository categoriaRepository;
 
+    @Autowired
+    private ProductoRepository productoRepository; //PROVISORIO MIENTRAS SE TRABAJA CON DTOS
+
     private Cliente cliente;
     private Categoria categoria;
-    private Producto producto;
+    private ProductoDto producto;
+    private Producto productoEntidad;
 
     @BeforeEach
     void setUp() {
@@ -61,14 +68,27 @@ public class VentaFinanciadaTest {
         categoria.setNombre("Tecnologia");
         categoria = categoriaRepository.save(categoria);
 
-        Producto nuevoProducto = new Producto("Smart TV 55", "4K UHD", "Samsung", 10, 100000.0, categoria);
+        CategoriaDto categoriaDto = new CategoriaDto();
+        categoriaDto.setIdCategoria(categoria.getIdCategoria());
+
+        ProductoDto nuevoProducto = new ProductoDto();
+        nuevoProducto.setNombre("Smart TV 55");
+        nuevoProducto.setDescripcion("4K UHD");
+        nuevoProducto.setMarca("Samsung");
+        nuevoProducto.setStock(10);
+        nuevoProducto.setPrecioBase(100000.0);
+        nuevoProducto.setCategoriaDto(categoriaDto);
+
         producto = productoService.guardarProducto(nuevoProducto);
+
+        productoEntidad = productoRepository.findById(producto.getIdProducto())
+                .orElseThrow();
     }
 
     @Test
     @DisplayName("Debe registrar una venta financiada correctamente con recargo y 6 cuotas consecutivas")
     void testRegistrarVentaFinanciadaExitoso() {
-        DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
+        DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
 
         VentaFinanciada venta = new VentaFinanciada("VF-001", LocalDate.now(), cliente, 10.0);
         venta.agregarDetalle(detalle);
@@ -85,14 +105,14 @@ public class VentaFinanciadaTest {
         assertEquals(110000.0 / 6, cuotas.get(0).getImporte());
         assertEquals(EstadoCuota.ADEUDADA, cuotas.get(0).getEstado());
 
-        Producto productoActualizado = productoService.buscarPorId(producto.getIdProducto());
+        ProductoDto productoActualizado = productoService.buscarPorId(producto.getIdProducto());
         assertEquals(9, productoActualizado.getStock());
     }
 
     @Test
     @DisplayName("Debe consultar el estado de cuenta de cuotas pendientes de un cliente")
     void testConsultarEstadoCuentaCuotasPendientes() {
-        DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
+        DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
         VentaFinanciada venta = new VentaFinanciada("VF-002", LocalDate.now(), cliente, 15.0);
         venta.agregarDetalle(detalle);
         ventaService.registrarVentaFinanciada(venta);
@@ -107,7 +127,7 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("Debe consultar cuotas pendientes por número de identificación (DNI/CUIT)")
     void testConsultarEstadoCuentaPorIdentificacion() {
-        DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
+        DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
         VentaFinanciada venta = new VentaFinanciada("VF-003", LocalDate.now(), cliente, 10.0);
         venta.agregarDetalle(detalle);
         ventaService.registrarVentaFinanciada(venta);
@@ -138,7 +158,7 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("No debe registrar una venta con porcentaje de recargo negativo")
     void testRegistrarVentaConRecargoNegativo() {
-        DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
+        DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
         VentaFinanciada venta = new VentaFinanciada("VF-005", LocalDate.now(), cliente, -5.0);
         venta.agregarDetalle(detalle);
 
@@ -150,7 +170,7 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("No debe registrar una venta financiada si el stock es insuficiente")
     void testRegistrarVentaFinanciadaStockInsuficiente() {
-        DetalleVenta detalle = new DetalleVenta(15, producto.getPrecioBase(), producto);
+        DetalleVenta detalle = new DetalleVenta(15, productoEntidad.getPrecioBase(), productoEntidad);
         VentaFinanciada venta = new VentaFinanciada("VF-006", LocalDate.now(), cliente, 10.0);
         venta.agregarDetalle(detalle);
 

@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import ar.edu.unju.fi.poo.dto.CategoriaDto;
+import ar.edu.unju.fi.poo.dto.ProductoDto;
 import ar.edu.unju.fi.poo.exceptions.*;
 import ar.edu.unju.fi.poo.model.Categoria;
 import ar.edu.unju.fi.poo.model.Cliente;
@@ -26,6 +28,7 @@ import ar.edu.unju.fi.poo.model.Venta;
 import ar.edu.unju.fi.poo.model.VentaContado;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
 import ar.edu.unju.fi.poo.repository.CuponRepository;
+import ar.edu.unju.fi.poo.repository.ProductoRepository;
 import ar.edu.unju.fi.poo.service.ClienteService;
 import ar.edu.unju.fi.poo.service.ProductoService;
 import ar.edu.unju.fi.poo.service.VentaService;
@@ -40,6 +43,9 @@ public class VentasTest {
 
 	@Autowired
 	private ProductoService productoService;
+	
+	@Autowired
+	private ProductoRepository productoRepository;
 
 	@Autowired
 	private ClienteService clienteService;
@@ -52,7 +58,9 @@ public class VentasTest {
 	
 	private Cliente cliente;
 	private Categoria categoria;
-	private Producto producto;
+	private ProductoDto producto;
+	//Provisorio mientras se implementa DTOS
+	private Producto productoEntidad;
 	private Cupon cupon;
 
 	@BeforeEach
@@ -60,12 +68,28 @@ public class VentasTest {
 	    Cliente nuevoCliente = new Cliente("22334455", "Ana", "Lopez", null,"3884000000", "ana@test.com","San Salvador de Jujuy", TipoCliente.PARTICULAR);
 	    cliente = clienteService.guardarCliente(nuevoCliente);
 
+	    // Crear categoría
 	    categoria = new Categoria();
 	    categoria.setNombre("Electrodomésticos");
 	    categoria = categoriaRepository.save(categoria);
 
-	    Producto nuevoProducto = new Producto("Cafetera", "Expreso", "Oster", 10, 25000.0, categoria);
+	    CategoriaDto categoriaDto = new CategoriaDto();
+	    categoriaDto.setIdCategoria(categoria.getIdCategoria());
+
+	    // Crear producto
+	    ProductoDto nuevoProducto = new ProductoDto();
+	    nuevoProducto.setNombre("Cafetera");
+	    nuevoProducto.setDescripcion("Expreso");
+	    nuevoProducto.setMarca("Oster");
+	    nuevoProducto.setStock(10);
+	    nuevoProducto.setPrecioBase(25000.0);
+	    nuevoProducto.setCategoriaDto(categoriaDto);
+
 	    producto = productoService.guardarProducto(nuevoProducto);
+
+	    // Recuperar entidad para construir DetalleVenta
+	    productoEntidad = productoRepository.findById(producto.getIdProducto())
+	            .orElseThrow();
 	    
 	    cupon = new Cupon("DESC10", 10.0, LocalDate.now().plusDays(10));
 	    cuponRepository.save(cupon);
@@ -74,7 +98,7 @@ public class VentasTest {
 	@Test
 	@DisplayName("Debe registrar una venta de contado correctamente")
 	void testRegistrarVentaContado() {
-	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
 
 	    VentaContado venta = new VentaContado();
 	    venta.setCodigoComprobante("V-001");
@@ -98,7 +122,7 @@ public class VentasTest {
 	    venta.setCliente(cliente);
 	    venta.setCupon(cupon);
 
-	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
 	    venta.agregarDetalle(detalle);
 	    VentaContado guardada = ventaService.registrarVentaContado(venta);
 
@@ -111,7 +135,7 @@ public class VentasTest {
 	@DisplayName("Debe rechazar una venta con un cupón vencido")
 	void testRegistrarVentaConCuponVencido() {
 	    Cupon cupon = new Cupon("DESCVENCIDO", 10.0, LocalDate.now().minusDays(1));
-	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
 
 	    VentaContado venta = new VentaContado();
 	    venta.setCodigoComprobante("V-CUP-003");
@@ -130,7 +154,7 @@ public class VentasTest {
 	    cupon.setUsado(true);
 	    cupon = cuponRepository.save(cupon);
 	    
-	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
 
 	    VentaContado venta = new VentaContado();
 	    venta.setCodigoComprobante("V-CUP-004");
@@ -165,7 +189,7 @@ public class VentasTest {
 	@Test
 	@DisplayName("No debe registrar una venta con cantidad inválida")
 	void testRegistrarVentaConCantidadInvalida() {
-	    DetalleVenta detalle = new DetalleVenta(0, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(0, productoEntidad.getPrecioBase(), productoEntidad);
 
 	    VentaContado venta = new VentaContado();
 	    venta.setCodigoComprobante("V-003");
@@ -197,7 +221,7 @@ public class VentasTest {
 	@Test
 	@DisplayName("No debe registrar una venta con stock insuficiente")
 	void testRegistrarVentaConStockInsuficiente() {
-	    DetalleVenta detalle = new DetalleVenta(11, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(11, productoEntidad.getPrecioBase(), productoEntidad);
 
 	    VentaContado venta = new VentaContado();
 	    venta.setCodigoComprobante("V-005");
@@ -212,7 +236,7 @@ public class VentasTest {
 	@Test
 	@DisplayName("Debe buscar el historial de ventas de un cliente")
 	void testBuscarHistorialPorCliente() {
-	    DetalleVenta detalle = new DetalleVenta(2, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
 
 	    VentaContado venta = new VentaContado();
 	    venta.setCodigoComprobante("V-HIST-001");
@@ -231,7 +255,7 @@ public class VentasTest {
 	@Test
 	@DisplayName("Debe buscar ventas dentro de un rango de fechas")
 	void testBuscarPorRangoFechas() {
-	    DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
 
 	    VentaContado venta = new VentaContado();
 	    venta.setCodigoComprobante("V-FECHA-001");
@@ -260,7 +284,7 @@ public class VentasTest {
 	@Test
 	@DisplayName("Debe buscar ventas por modalidad")
 	void testBuscarPorModalidad() {
-	    DetalleVenta detalle = new DetalleVenta(1, producto.getPrecioBase(), producto);
+	    DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
 
 	    VentaContado venta = new VentaContado();
 	    venta.setCodigoComprobante("V-MOD-001");

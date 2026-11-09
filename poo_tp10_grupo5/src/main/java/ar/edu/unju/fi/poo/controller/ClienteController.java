@@ -39,4 +39,5 @@ public class ClienteController {
     public Cliente actualizar(@PathVariable Integer id, @RequestBody Cliente cliente) {
         return service.actualizarCliente(id, cliente);
     }
+
 }

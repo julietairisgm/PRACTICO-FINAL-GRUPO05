@@ -18,11 +18,7 @@ public class VentaServiceImp implements VentaService {
     private final VentaFinanciadaRepository ventaFinanciadaRepository;
     private final CuotaRepository cuotaRepository;
 
-    public VentaServiceImp(VentaRepository ventaRepository, 
-                           ProductoRepository productoRepository, 
-                           CuponRepository cuponRepository,
-                           VentaFinanciadaRepository ventaFinanciadaRepository,
-                           CuotaRepository cuotaRepository) {
+    public VentaServiceImp(VentaRepository ventaRepository,ProductoRepository productoRepository,CuponRepository cuponRepository,VentaFinanciadaRepository ventaFinanciadaRepository,CuotaRepository cuotaRepository){
         this.ventaRepository = ventaRepository;
         this.productoRepository = productoRepository;
         this.cuponRepository = cuponRepository;

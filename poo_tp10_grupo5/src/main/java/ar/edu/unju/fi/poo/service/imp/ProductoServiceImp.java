@@ -1,4 +1,4 @@
-package ar.edu.unju.fi.poo.service;
+package ar.edu.unju.fi.poo.service.imp;
 
 import ar.edu.unju.fi.poo.dto.CategoriaDto;
 import ar.edu.unju.fi.poo.dto.ProductoDto;
@@ -9,6 +9,8 @@ import ar.edu.unju.fi.poo.model.Categoria;
 import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
 import ar.edu.unju.fi.poo.repository.ProductoRepository;
+import ar.edu.unju.fi.poo.service.ProductoService;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

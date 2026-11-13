@@ -1,4 +1,4 @@
-package ar.edu.unju.fi.poo.service;
+package ar.edu.unju.fi.poo.service.imp;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ar.edu.unju.fi.poo.exceptions.*;
 import ar.edu.unju.fi.poo.model.*;
 import ar.edu.unju.fi.poo.repository.*;
+import ar.edu.unju.fi.poo.service.VentaService;
 
 @Service
 public class VentaServiceImp implements VentaService {

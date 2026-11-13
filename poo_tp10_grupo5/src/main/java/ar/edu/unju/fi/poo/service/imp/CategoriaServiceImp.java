@@ -1,4 +1,4 @@
-package ar.edu.unju.fi.poo.service;
+package ar.edu.unju.fi.poo.service.imp;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +9,8 @@ import ar.edu.unju.fi.poo.dto.CategoriaDto;
 import ar.edu.unju.fi.poo.exceptions.CategoriaNoEncontradaException;
 import ar.edu.unju.fi.poo.model.Categoria;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
+import ar.edu.unju.fi.poo.service.CategoriaService;
+
 import org.springframework.transaction.annotation.Transactional;
 
 

@@ -28,17 +28,17 @@ public class ClienteController {
 
     @GetMapping
     public ResponseEntity<List<ClienteDto>> listar() {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.listarTodos());
+        return ResponseEntity.ok(service.listarTodos());
     }
 
     @GetMapping("/identificacion/{numeroIdentificacion}")
     public ResponseEntity<ClienteDto> buscarPorIdentificacion(@PathVariable String numeroIdentificacion) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.buscarPorNumeroIdentificacion(numeroIdentificacion));
+        return ResponseEntity.ok(service.buscarPorNumeroIdentificacion(numeroIdentificacion));
     }
 
     @GetMapping("/buscar")
     public ResponseEntity<List<ClienteDto>> buscarPorNombreORazonSocial(@RequestParam String termino) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.buscarPorNombreORazonSocial(termino));
+        return ResponseEntity.ok(service.buscarPorNombreORazonSocial(termino));
     }
 
     @PostMapping
@@ -49,6 +49,6 @@ public class ClienteController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ClienteDto> actualizar(@PathVariable Integer id, @RequestBody ClienteDto cliente) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.actualizarCliente(id, cliente));
+        return ResponseEntity.ok(service.actualizarCliente(id, cliente));
     }
 }

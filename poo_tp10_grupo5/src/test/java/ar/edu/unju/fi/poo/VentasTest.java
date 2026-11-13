@@ -29,10 +29,11 @@ import ar.edu.unju.fi.poo.model.VentaContado;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
 import ar.edu.unju.fi.poo.repository.CuponRepository;
 import ar.edu.unju.fi.poo.repository.ProductoRepository;
-import ar.edu.unju.fi.poo.service.ClienteService;
 import ar.edu.unju.fi.poo.service.ProductoService;
 import ar.edu.unju.fi.poo.service.VentaService;
 import jakarta.transaction.Transactional;
+import ar.edu.unju.fi.poo.repository.ClienteRepository;
+
 
 
 @SpringBootTest
@@ -48,7 +49,7 @@ public class VentasTest {
 	private ProductoRepository productoRepository;
 
 	@Autowired
-	private ClienteService clienteService;
+	private ClienteRepository clienteRepository;
 	
 	@Autowired
     private CategoriaRepository categoriaRepository;
@@ -66,7 +67,8 @@ public class VentasTest {
 	@BeforeEach
 	void setUp() {
 	    Cliente nuevoCliente = new Cliente("22334455", "Ana", "Lopez", null,"3884000000", "ana@test.com","San Salvador de Jujuy", TipoCliente.PARTICULAR);
-	    cliente = clienteService.guardarCliente(nuevoCliente);
+	    cliente = clienteRepository.save(nuevoCliente);
+
 
 	    // Crear categoría
 	    categoria = new Categoria();

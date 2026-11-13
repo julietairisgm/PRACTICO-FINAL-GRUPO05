@@ -1,8 +1,19 @@
 package ar.edu.unju.fi.poo.controller;
 
 import java.util.List;
-import org.springframework.web.bind.annotation.*;
-import ar.edu.unju.fi.poo.model.Cliente;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import ar.edu.unju.fi.poo.dto.ClienteDto;
 import ar.edu.unju.fi.poo.service.ClienteService;
 
 @RestController
@@ -11,33 +22,33 @@ public class ClienteController {
 
     private final ClienteService service;
 
-    ClienteController(ClienteService service) {
+    public ClienteController(ClienteService service) {
         this.service = service;
     }
 
     @GetMapping
-    public List<Cliente> listar() {
-        return service.listarTodos();
+    public ResponseEntity<List<ClienteDto>> listar() {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.listarTodos());
     }
 
     @GetMapping("/identificacion/{numeroIdentificacion}")
-    public Cliente buscarPorIdentificacion(@PathVariable String numeroIdentificacion) {
-        return service.buscarPorNumeroIdentificacion(numeroIdentificacion);
+    public ResponseEntity<ClienteDto> buscarPorIdentificacion(@PathVariable String numeroIdentificacion) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.buscarPorNumeroIdentificacion(numeroIdentificacion));
     }
 
     @GetMapping("/buscar")
-    public List<Cliente> buscarPorNombreORazonSocial(@RequestParam String termino) {
-        return service.buscarPorNombreORazonSocial(termino);
+    public ResponseEntity<List<ClienteDto>> buscarPorNombreORazonSocial(@RequestParam String termino) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.buscarPorNombreORazonSocial(termino));
     }
 
     @PostMapping
-    public Cliente crear(@RequestBody Cliente cliente) {
-        return service.guardarCliente(cliente);
+    public ResponseEntity<ClienteDto> crear(@RequestBody ClienteDto cliente) {
+        ClienteDto nuevo = service.guardarCliente(cliente);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
     }
 
     @PutMapping("/{id}")
-    public Cliente actualizar(@PathVariable Integer id, @RequestBody Cliente cliente) {
-        return service.actualizarCliente(id, cliente);
+    public ResponseEntity<ClienteDto> actualizar(@PathVariable Integer id, @RequestBody ClienteDto cliente) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.actualizarCliente(id, cliente));
     }
-
 }

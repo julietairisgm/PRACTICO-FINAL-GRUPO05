@@ -1,6 +1,6 @@
 package ar.edu.unju.fi.poo;
 
-import ar.edu.unju.fi.poo.model.Cliente;
+import ar.edu.unju.fi.poo.dto.ClienteDto;
 import ar.edu.unju.fi.poo.model.TipoCliente;
 import ar.edu.unju.fi.poo.service.ClienteService;
 import jakarta.transaction.Transactional;
@@ -20,20 +20,28 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 class ClienteTest {
 
-	@Autowired
-    private ClienteService clienteService; 
+    @Autowired
+    private ClienteService clienteService;
 
-    private Cliente clientePrueba;
+    private ClienteDto clientePrueba;
 
     @BeforeEach
     void setUp() {
-        clientePrueba = new Cliente("12345678", "Test", "TestApellido", null, "3884000000", "test@mail.com", "Direccion Test 123", TipoCliente.PARTICULAR);
+        clientePrueba = new ClienteDto();
+        clientePrueba.setNumeroIdentificacion("12345678");
+        clientePrueba.setNombre("Test");
+        clientePrueba.setApellido("TestApellido");
+        clientePrueba.setRazonSocial(null);
+        clientePrueba.setTelefono("3884000000");
+        clientePrueba.setEmail("test@mail.com");
+        clientePrueba.setDireccion("Direccion Test 123");
+        clientePrueba.setTipoCliente(TipoCliente.PARTICULAR);
     }
 
     @Test
     @DisplayName("Debe guardar un cliente correctamente")
     void guardarClienteExitoso() {
-        Cliente resultado = clienteService.guardarCliente(clientePrueba);
+        ClienteDto resultado = clienteService.guardarCliente(clientePrueba);
 
         assertNotNull(resultado);
         assertNotNull(resultado.getIdCliente());
@@ -43,9 +51,17 @@ class ClienteTest {
     @Test
     @DisplayName("Debe lanzar una excepción al guardar un cliente duplicado")
     void guardarClienteFallaPorDuplicado() {
-    	clienteService.guardarCliente(clientePrueba);
+        clienteService.guardarCliente(clientePrueba);
 
-        Cliente clienteDuplicado = new Cliente("12345678", "Laura", "Mamani", null, "3884111111", "lauratest@mail.com", "Calle Falsa 123", TipoCliente.PARTICULAR);
+        ClienteDto clienteDuplicado = new ClienteDto();
+        clienteDuplicado.setNumeroIdentificacion("12345678");
+        clienteDuplicado.setNombre("Laura");
+        clienteDuplicado.setApellido("Mamani");
+        clienteDuplicado.setRazonSocial(null);
+        clienteDuplicado.setTelefono("3884111111");
+        clienteDuplicado.setEmail("lauratest@mail.com");
+        clienteDuplicado.setDireccion("Calle Falsa 123");
+        clienteDuplicado.setTipoCliente(TipoCliente.PARTICULAR);
 
         assertThrows(ClienteDuplicadoException.class, () -> {
             clienteService.guardarCliente(clienteDuplicado);
@@ -55,9 +71,9 @@ class ClienteTest {
     @Test
     @DisplayName("Debe buscar un cliente por su número de identificación")
     void buscarPorNumeroIdentificacionExitoso() {
-    	clienteService.guardarCliente(clientePrueba);
+        clienteService.guardarCliente(clientePrueba);
 
-        Cliente resultado = clienteService.buscarPorNumeroIdentificacion(
+        ClienteDto resultado = clienteService.buscarPorNumeroIdentificacion(
             clientePrueba.getNumeroIdentificacion()
         );
 
@@ -76,9 +92,9 @@ class ClienteTest {
     @Test
     @DisplayName("Debe buscar clientes por nombre o razón social")
     void buscarPorNombreORazonSocialExitoso() {
-    	clienteService.guardarCliente(clientePrueba);
+        clienteService.guardarCliente(clientePrueba);
 
-        List<Cliente> resultados = clienteService.buscarPorNombreORazonSocial("Test");
+        List<ClienteDto> resultados = clienteService.buscarPorNombreORazonSocial("Test");
 
         assertFalse(resultados.isEmpty());
         assertEquals(1, resultados.size());

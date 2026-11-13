@@ -30,7 +30,7 @@ import ar.edu.unju.fi.poo.model.TipoCliente;
 import ar.edu.unju.fi.poo.model.VentaFinanciada;
 import ar.edu.unju.fi.poo.repository.CategoriaRepository;
 import ar.edu.unju.fi.poo.repository.ProductoRepository;
-import ar.edu.unju.fi.poo.service.ClienteService;
+import ar.edu.unju.fi.poo.repository.ClienteRepository;
 import ar.edu.unju.fi.poo.service.ProductoService;
 import ar.edu.unju.fi.poo.service.VentaService;
 import jakarta.transaction.Transactional;
@@ -46,7 +46,7 @@ public class VentaFinanciadaTest {
     private ProductoService productoService;
 
     @Autowired
-    private ClienteService clienteService;
+    private ClienteRepository clienteRepository;
 
     @Autowired
     private CategoriaRepository categoriaRepository;
@@ -62,7 +62,7 @@ public class VentaFinanciadaTest {
     @BeforeEach
     void setUp() {
         Cliente nuevoCliente = new Cliente("88990011", "Ramon", "Gomez", null, "3884111222", "ramon@test.com", "Av. Bolivia 123", TipoCliente.PARTICULAR);
-        cliente = clienteService.guardarCliente(nuevoCliente);
+        cliente = clienteRepository.save(nuevoCliente);
 
         categoria = new Categoria();
         categoria.setNombre("Tecnologia");

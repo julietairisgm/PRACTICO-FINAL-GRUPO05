@@ -4,8 +4,7 @@ import ar.edu.unju.fi.poo.dto.CategoriaDto;
 import ar.edu.unju.fi.poo.dto.ProductoDto;
 import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
 import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
-import ar.edu.unju.fi.poo.model.Categoria;
-import ar.edu.unju.fi.poo.repository.CategoriaRepository;
+import ar.edu.unju.fi.poo.service.CategoriaService;
 import ar.edu.unju.fi.poo.service.ProductoService;
 
 import org.junit.jupiter.api.DisplayName;
@@ -24,19 +23,15 @@ public class ProductoServiceTest {
     private ProductoService productoService;
 
     @Autowired
-    private CategoriaRepository categoriaRepository;
+    private CategoriaService categoriaService;
 
     @Test
     @DisplayName("Debe guardar un producto correctamente en la base de datos")
     void testGuardarProductoEnBaseDeDatos() {
         // Guardar una categoría real en MySQL
-        Categoria categoria = new Categoria();
+        CategoriaDto categoria = new CategoriaDto();
         categoria.setNombre("Electrónica");
-        categoria = categoriaRepository.save(categoria);
-
-        // Convertir la categoría a DTO
-        CategoriaDto categoriaDto = new CategoriaDto();
-        categoriaDto.setIdCategoria(categoria.getIdCategoria());
+        CategoriaDto categoriaDto = categoriaService.crear(categoria);
 
         // Crear y guardar el producto
         ProductoDto productoDto = new ProductoDto();
@@ -57,12 +52,9 @@ public class ProductoServiceTest {
     @Test
     @DisplayName("Debe buscar un producto por su ID correctamente")
     void testBuscarPorIdExitoso() {
-        Categoria categoria = new Categoria();
+        CategoriaDto categoria = new CategoriaDto();
         categoria.setNombre("Periféricos");
-        categoria = categoriaRepository.save(categoria);
-        
-        CategoriaDto categoriaDto = new CategoriaDto();
-        categoriaDto.setIdCategoria(categoria.getIdCategoria());
+        CategoriaDto categoriaDto = categoriaService.crear(categoria);
 
         ProductoDto productoDto = new ProductoDto();
         productoDto.setNombre("Teclado");
@@ -90,12 +82,9 @@ public class ProductoServiceTest {
     @Test
     @DisplayName("Debe confirmar la disponibilidad cuando hay stock suficiente")
     void testConsultarDisponibilidadStockSuficiente() {
-        Categoria categoria = new Categoria();
+    	CategoriaDto categoria = new CategoriaDto();
         categoria.setNombre("Monitores");
-        categoria = categoriaRepository.save(categoria);
-
-        CategoriaDto categoriaDto = new CategoriaDto();
-        categoriaDto.setIdCategoria(categoria.getIdCategoria());
+        CategoriaDto categoriaDto = categoriaService.crear(categoria);
 
         ProductoDto productoDto = new ProductoDto();
         productoDto.setNombre("Monitor 24'");
@@ -114,12 +103,9 @@ public class ProductoServiceTest {
     @Test
     @DisplayName("Debe actualizar el stock correctamente en la base de datos")
     void testActualizarStockExitosoEnBD() {
-        Categoria categoria = new Categoria();
+    	CategoriaDto categoria = new CategoriaDto();
         categoria.setNombre("Accesorios");
-        categoria = categoriaRepository.save(categoria);
-
-        CategoriaDto categoriaDto = new CategoriaDto();
-        categoriaDto.setIdCategoria(categoria.getIdCategoria());
+        CategoriaDto categoriaDto = categoriaService.crear(categoria);
 
         ProductoDto productoDto = new ProductoDto();
         productoDto.setNombre("Mouse");
@@ -140,12 +126,9 @@ public class ProductoServiceTest {
     @Test
     @DisplayName("Debe lanzar una excepción al intentar actualizar con stock insuficiente")
     void testActualizarStockLanzaExcepcionPorStockInsuficiente() {
-        Categoria categoria = new Categoria();
+    	CategoriaDto categoria = new CategoriaDto();
         categoria.setNombre("Audio");
-        categoria = categoriaRepository.save(categoria);
-
-        CategoriaDto categoriaDto = new CategoriaDto();
-        categoriaDto.setIdCategoria(categoria.getIdCategoria());
+        CategoriaDto categoriaDto = categoriaService.crear(categoria);
 
         ProductoDto productoDto = new ProductoDto();
         productoDto.setNombre("Auriculares");
@@ -164,12 +147,9 @@ public class ProductoServiceTest {
     @Test
     @DisplayName("Debe encontrar los productos con stock crítico")
     void testBuscarProductosConStockCritico() {
-        Categoria categoria = new Categoria();
+    	CategoriaDto categoria = new CategoriaDto();
         categoria.setNombre("Almacenamiento");
-        categoria = categoriaRepository.save(categoria);
-
-        CategoriaDto categoriaDto = new CategoriaDto();
-        categoriaDto.setIdCategoria(categoria.getIdCategoria());
+        CategoriaDto categoriaDto = categoriaService.crear(categoria);
 
         // Stock por debajo del límite crítico (20 unidades)
         ProductoDto productoDto = new ProductoDto();

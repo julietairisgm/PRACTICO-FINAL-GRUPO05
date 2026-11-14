@@ -3,7 +3,7 @@ package ar.edu.unju.fi.poo.dto;
 import java.time.LocalDate;
 
 public class CuotaResponseDTO {
-    private Long idCuota;
+    private Integer idCuota;
     private Integer numeroCuota;
     private Double importe;
     private LocalDate fechaVencimiento;
@@ -11,8 +11,8 @@ public class CuotaResponseDTO {
 
     public CuotaResponseDTO() {}
 
-    public Long getIdCuota() { return idCuota; }
-    public void setIdCuota(Long idCuota) { this.idCuota = idCuota; }
+    public Integer getIdCuota() { return idCuota; }
+    public void setIdCuota(Integer idCuota) { this.idCuota = idCuota; }
 
     public Integer getNumeroCuota() { return numeroCuota; }
     public void setNumeroCuota(Integer numeroCuota) { this.numeroCuota = numeroCuota; }

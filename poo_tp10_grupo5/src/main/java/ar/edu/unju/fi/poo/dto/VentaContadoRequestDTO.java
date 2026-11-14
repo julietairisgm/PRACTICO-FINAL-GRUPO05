@@ -3,14 +3,14 @@ package ar.edu.unju.fi.poo.dto;
 import java.util.List;
 
 public class VentaContadoRequestDTO {
-    private Long idCliente;
+    private Integer idCliente;
     private String codigoCupon;
     private List<DetalleVentaRequestDTO> detalles;
 
     public VentaContadoRequestDTO() {}
 
-    public Long getIdCliente() { return idCliente; }
-    public void setIdCliente(Long idCliente) { this.idCliente = idCliente; }
+    public Integer getIdCliente() { return idCliente; }
+    public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
 
     public String getCodigoCupon() { return codigoCupon; }
     public void setCodigoCupon(String codigoCupon) { this.codigoCupon = codigoCupon; }

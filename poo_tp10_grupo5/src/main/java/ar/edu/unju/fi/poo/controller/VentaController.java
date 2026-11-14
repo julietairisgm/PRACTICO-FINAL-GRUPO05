@@ -185,7 +185,7 @@ public class VentaController {
         VentaResponseDTO dto = new VentaResponseDTO();
         
         if (venta.getIdVenta() != null) {
-            dto.setIdVenta(Long.valueOf(venta.getIdVenta()));
+            dto.setIdVenta(Integer.valueOf(venta.getIdVenta()));
         }
         
         dto.setFecha(venta.getFechaVenta());
@@ -198,7 +198,7 @@ public class VentaController {
 
         if (venta.getCliente() != null) {
             if (venta.getCliente().getIdCliente() != null) {
-                dto.setIdCliente(Long.valueOf(venta.getCliente().getIdCliente()));
+                dto.setIdCliente(Integer.valueOf(venta.getCliente().getIdCliente()));
             }
             
             String nombre = venta.getCliente().getNombre() != null ? venta.getCliente().getNombre() : "";
@@ -233,7 +233,7 @@ public class VentaController {
 
         DetalleVentaResponseDTO dto = new DetalleVentaResponseDTO();
         if (detalle.getIdDetalle() != null) {
-            dto.setIdDetalleVenta(Long.valueOf(detalle.getIdDetalle()));
+            dto.setIdDetalleVenta(Integer.valueOf(detalle.getIdDetalle()));
         }
         
         dto.setCantidad(detalle.getCantidad());
@@ -241,7 +241,7 @@ public class VentaController {
         double precioUnitario = 0.0;
         if (detalle.getProducto() != null) {
             if (detalle.getProducto().getIdProducto() != null) {
-                dto.setIdProducto(Long.valueOf(detalle.getProducto().getIdProducto()));
+                dto.setIdProducto(Integer.valueOf(detalle.getProducto().getIdProducto()));
             }
             dto.setNombreProducto(detalle.getProducto().getNombre());
             
@@ -275,7 +275,7 @@ public class VentaController {
         if (cuotas != null) {
             for (Cuota cuota : cuotas) {
                 CuotaResponseDTO dto = new CuotaResponseDTO();
-                dto.setIdCuota(cuota.getIdCuota() != null ? Long.valueOf(cuota.getIdCuota()) : null);
+                dto.setIdCuota(cuota.getIdCuota() != null ? Integer.valueOf(cuota.getIdCuota()) : null);
                 dto.setNumeroCuota(cuota.getNumeroCuota());
                 dto.setImporte(cuota.getImporte());
                 dto.setFechaVencimiento(cuota.getFechaVencimiento());

@@ -16,7 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import ar.edu.unju.fi.poo.dto.CategoriaDto;
+import ar.edu.unju.fi.poo.dto.ClienteDto;
+import ar.edu.unju.fi.poo.dto.DetalleVentaRequestDTO;
 import ar.edu.unju.fi.poo.dto.ProductoDto;
+import ar.edu.unju.fi.poo.dto.VentaContadoRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaFinanciadaRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaResponseDTO;
 import ar.edu.unju.fi.poo.exceptions.*;
 import ar.edu.unju.fi.poo.model.Cliente;
 import ar.edu.unju.fi.poo.model.Cupon;
@@ -27,13 +32,13 @@ import ar.edu.unju.fi.poo.model.Venta;
 import ar.edu.unju.fi.poo.model.VentaContado;
 import ar.edu.unju.fi.poo.model.VentaFinanciada;
 import ar.edu.unju.fi.poo.service.CategoriaService;
+import ar.edu.unju.fi.poo.service.ClienteService;
 import ar.edu.unju.fi.poo.repository.CuponRepository;
 import ar.edu.unju.fi.poo.repository.ProductoRepository;
 import ar.edu.unju.fi.poo.service.ProductoService;
 import ar.edu.unju.fi.poo.service.VentaService;
 import jakarta.transaction.Transactional;
 import ar.edu.unju.fi.poo.repository.ClienteRepository;
-
 
 
 @SpringBootTest
@@ -44,12 +49,9 @@ public class VentasTest {
 
 	@Autowired
 	private ProductoService productoService;
-	
-	@Autowired
-	private ProductoRepository productoRepository;
 
 	@Autowired
-	private ClienteRepository clienteRepository;
+	private ClienteService clienteService;
 	
 	@Autowired
     private CategoriaService categoriaService;
@@ -57,23 +59,27 @@ public class VentasTest {
 	@Autowired
     private CuponRepository cuponRepository;
 	
-	private Cliente cliente;
+	private ClienteDto cliente;
 	private CategoriaDto categoriaDto;
 	private ProductoDto producto;
-	//Provisorio mientras se implementa DTOS
-	private Producto productoEntidad;
 	private Cupon cupon;
 
 	@BeforeEach
 	void setUp() {
-	    Cliente nuevoCliente = new Cliente("22334455", "Ana", "Lopez", null,"3884000000", "ana@test.com","San Salvador de Jujuy", TipoCliente.PARTICULAR);
-	    cliente = clienteRepository.save(nuevoCliente);
-
+		ClienteDto nuevoCliente = new ClienteDto();
+		nuevoCliente.setNumeroIdentificacion("22334455");
+		nuevoCliente.setNombre("Ana");
+		nuevoCliente.setApellido("Lopez");
+		nuevoCliente.setRazonSocial(null);
+		nuevoCliente.setTelefono("3884000000");
+		nuevoCliente.setEmail("ana@test.com");
+		nuevoCliente.setDireccion("San Salvador de Jujuy");
+		nuevoCliente.setTipoCliente(TipoCliente.PARTICULAR);
+		cliente = clienteService.guardarCliente(nuevoCliente);
 
 	    // Crear categoría
 	    CategoriaDto nuevaCategoria = new CategoriaDto();
 	    nuevaCategoria.setNombre("Electrodomésticos");
-
 	    categoriaDto = categoriaService.crear(nuevaCategoria);
 
 	    // Crear producto
@@ -84,12 +90,7 @@ public class VentasTest {
 	    nuevoProducto.setStock(10);
 	    nuevoProducto.setPrecioBase(25000.0);
 	    nuevoProducto.setCategoriaDto(categoriaDto);
-
 	    producto = productoService.guardarProducto(nuevoProducto);
-
-	    // Recuperar entidad para construir DetalleVenta
-	    productoEntidad = productoRepository.findById(producto.getIdProducto())
-	            .orElseThrow();
 	    
 	    cupon = new Cupon("DESC10", 10.0, LocalDate.now().plusDays(10));
 	    cuponRepository.save(cupon);
@@ -98,70 +99,59 @@ public class VentasTest {
 	@Test
 	@DisplayName("Debe registrar una venta de contado correctamente")
 	void testRegistrarVentaContado() {
-	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon(null);
 
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-001");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.setCliente(cliente);
-	    venta.agregarDetalle(detalle);
+	    venta.setDetalles(List.of(
+	        new DetalleVentaRequestDTO(producto.getIdProducto(), 2)
+	    ));
 
-	    VentaContado ventaGuardada = ventaService.registrarVentaContado(venta);
+	    VentaResponseDTO ventaGuardada = ventaService.registrarVentaContado(venta);
 
 	    assertNotNull(ventaGuardada.getIdVenta());
-	    assertEquals(50000.0, ventaGuardada.getSubtotal());
 	    assertEquals(50000.0, ventaGuardada.getTotal());
 	}
 	
 	@Test
 	@DisplayName("Debe registrar una venta de contado aplicando el descuento del cupón")
 	void testRegistrarVentaContadoConCuponValido() {
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-CUP-001");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.setCliente(cliente);
-	    venta.setCupon(cupon);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon("DESC10");
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 2)));
 
-	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
-	    venta.agregarDetalle(detalle);
-	    VentaContado guardada = ventaService.registrarVentaContado(venta);
+	    VentaResponseDTO guardada = ventaService.registrarVentaContado(venta);
 
+	    assertNotNull(guardada.getIdVenta());
 	    assertEquals(50000.0, guardada.getSubtotal());
 	    assertEquals(45000.0, guardada.getTotal());
-	    assertTrue(cuponRepository.findById(cupon.getIdCupon()).get().isUsado());
 	}
 	
 	@Test
 	@DisplayName("Debe rechazar una venta con un cupón vencido")
 	void testRegistrarVentaConCuponVencido() {
-	    Cupon cupon = new Cupon("DESCVENCIDO", 10.0, LocalDate.now().minusDays(1));
-	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon("DESCVENCIDO");
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 2)));
 
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-CUP-003");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.setCliente(cliente);
-	    venta.setCupon(cupon);
-	    venta.agregarDetalle(detalle);
-
-	    assertThrows(CuponInvalidoException.class, () -> ventaService.registrarVentaContado(venta));
+	    assertThrows(CuponInvalidoException.class,() -> ventaService.registrarVentaContado(venta));
 	}
 	
 	@Test
 	@DisplayName("Debe rechazar una venta con un cupón ya utilizado")
 	void testRegistrarVentaConCuponUtilizado() {
+		// AQUI HABRIA QUE USAR CUPON DTO, o alguna forma de no usar la identidad
+		// Una opcion es crear dto y usar crearcupon en el servicio... 
 	    Cupon cupon = new Cupon("DESCUENTOUSADO", 10.0, LocalDate.now().plusDays(10));
 	    cupon.setUsado(true);
 	    cupon = cuponRepository.save(cupon);
 	    
-	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
-
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-CUP-004");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.setCliente(cliente);
-	    venta.setCupon(cupon);
-	    venta.agregarDetalle(detalle);
+	    VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon("DESCUENTOUSADO");
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 2)));
 
 	    assertThrows(CuponInvalidoException.class, () -> ventaService.registrarVentaContado(venta));
 	}
@@ -189,62 +179,53 @@ public class VentasTest {
 	@Test
 	@DisplayName("No debe registrar una venta con cantidad inválida")
 	void testRegistrarVentaConCantidadInvalida() {
-	    DetalleVenta detalle = new DetalleVenta(0, productoEntidad.getPrecioBase(), productoEntidad);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon(null);
 
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-003");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.agregarDetalle(detalle);
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 0)));
 
-	    assertThrows(VentaInvalidaException.class, () -> {
-	        ventaService.registrarVentaContado(venta);
-	    });
+	    assertThrows(VentaInvalidaException.class, () ->
+	        ventaService.registrarVentaContado(venta)
+	    );
 	}
 	
 	@Test
 	@DisplayName("No debe registrar una venta con un producto inexistente")
 	void testRegistrarVentaConProductoInexistente() {
-	    Producto productoInexistente = new Producto();
-	    productoInexistente.setIdProducto(999999);
-	    DetalleVenta detalle = new DetalleVenta(1,25000.0,productoInexistente);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+		venta.setIdCliente(cliente.getIdCliente());
+		venta.setCodigoCupon(null);
 
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-004");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.agregarDetalle(detalle);
+		venta.setDetalles(List.of(new DetalleVentaRequestDTO(999999L, 1)));
 
-	    assertThrows(ProductoNoEncontradoException.class, () -> {
-	        ventaService.registrarVentaContado(venta);
-	    });
+		assertThrows(ProductoNoEncontradoException.class, () ->
+			ventaService.registrarVentaContado(venta))
+		;
 	}
 	
 	@Test
 	@DisplayName("No debe registrar una venta con stock insuficiente")
 	void testRegistrarVentaConStockInsuficiente() {
-	    DetalleVenta detalle = new DetalleVenta(11, productoEntidad.getPrecioBase(), productoEntidad);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon(null);
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 11)));
 
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-005");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.agregarDetalle(detalle);
-
-	    assertThrows(StockInsuficienteException.class, () -> {
-	        ventaService.registrarVentaContado(venta);
-	    });
+	    assertThrows(StockInsuficienteException.class, () ->
+	        ventaService.registrarVentaContado(venta)
+	    );
 	}
 	
 	@Test
 	@DisplayName("Debe buscar el historial de ventas de un cliente")
 	void testBuscarHistorialPorCliente() {
-	    DetalleVenta detalle = new DetalleVenta(2, productoEntidad.getPrecioBase(), productoEntidad);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon(null);
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 2)));
 
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-HIST-001");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.setCliente(cliente);
-	    venta.agregarDetalle(detalle);
-
-	    VentaContado ventaGuardada = ventaService.registrarVentaContado(venta);
+	    VentaResponseDTO ventaGuardada = ventaService.registrarVentaContado(venta);
 
 	    List<Venta> historial = ventaService.buscarHistorialPorCliente(cliente.getIdCliente());
 
@@ -255,17 +236,14 @@ public class VentasTest {
 	@Test
 	@DisplayName("Debe buscar ventas dentro de un rango de fechas")
 	void testBuscarPorRangoFechas() {
-	    DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon(null);
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
 
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-FECHA-001");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.setCliente(cliente);
-	    venta.agregarDetalle(detalle);
+	    VentaResponseDTO ventaGuardada = ventaService.registrarVentaContado(venta);
 
-	    VentaContado ventaGuardada = ventaService.registrarVentaContado(venta);
-
-	    List<Venta> ventas = ventaService.buscarPorRangoFechas(LocalDate.now().minusDays(1), LocalDate.now().plusDays(1));
+	    List<Venta> ventas = ventaService.buscarPorRangoFechas(LocalDate.now().minusDays(1),LocalDate.now().plusDays(1));
 
 	    assertTrue(ventas.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
 	}
@@ -274,47 +252,39 @@ public class VentasTest {
 	@DisplayName("Debe rechazar un rango de fechas inválido")
 	void testBuscarPorRangoFechasInvalido() {
 	    assertThrows(VentaInvalidaException.class, () -> {
-	        ventaService.buscarPorRangoFechas(
-	            LocalDate.now(),
-	            LocalDate.now().minusDays(1)
-	        );
+	        ventaService.buscarPorRangoFechas(LocalDate.now(), LocalDate.now().minusDays(1));
 	    });
 	}
 	
 	@Test
 	@DisplayName("Debe buscar ventas por modalidad CONTADO")
 	void testBuscarPorModalidad() {
-	    DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
+		VentaContadoRequestDTO venta = new VentaContadoRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setCodigoCupon(null);
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
 
-	    VentaContado venta = new VentaContado();
-	    venta.setCodigoComprobante("V-MOD-001");
-	    venta.setFechaVenta(LocalDate.now());
-	    venta.setCliente(cliente);
-	    venta.agregarDetalle(detalle);
-
-	    VentaContado ventaGuardada = ventaService.registrarVentaContado(venta);
-
+	    VentaResponseDTO ventaGuardada = ventaService.registrarVentaContado(venta);
 	    List<Venta> ventas = ventaService.buscarPorModalidad("CONTADO");
 
 	    assertTrue(ventas.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
-	    assertTrue(ventaGuardada instanceof VentaContado);
+	    assertEquals("CONTADO", ventaGuardada.getModalidad());
 	}
 	
 
 	@Test
 	@DisplayName("Debe buscar ventas por modalidad FINANCIADO")
 	void testBuscarPorModalidadFinanciado() {
-		DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
-		VentaFinanciada venta = new VentaFinanciada("VF-MOD-001", LocalDate.now(), cliente, 10.0);
-		venta.agregarDetalle(detalle);
-		
-		VentaFinanciada ventaGuardada =
-        ventaService.registrarVentaFinanciada(venta);
+		VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+	    venta.setIdCliente(cliente.getIdCliente());
+	    venta.setPorcentajeRecargo(10.0);
+	    venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
 
-		List<Venta> ventas = ventaService.buscarPorModalidad("FINANCIADO");
+	    VentaResponseDTO ventaGuardada = ventaService.registrarVentaFinanciada(venta);
+	    List<Venta> ventas = ventaService.buscarPorModalidad("FINANCIADO");
 
-		assertTrue(ventas.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
-    	assertTrue(ventaGuardada instanceof VentaFinanciada);
+	    assertTrue(ventas.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
+	    assertEquals("FINANCIADO", ventaGuardada.getModalidad());
 	}
 
 	

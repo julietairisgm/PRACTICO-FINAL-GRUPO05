@@ -1,8 +1,8 @@
 package ar.edu.unju.fi.poo.dto;
 
 public class DetalleVentaResponseDTO {
-    private Long idDetalleVenta;
-    private Long idProducto;
+    private Integer idDetalleVenta;
+    private Integer idProducto;
     private String nombreProducto;
     private Double precioUnitario;
     private Integer cantidad;
@@ -10,11 +10,11 @@ public class DetalleVentaResponseDTO {
 
     public DetalleVentaResponseDTO() {}
 
-    public Long getIdDetalleVenta() { return idDetalleVenta; }
-    public void setIdDetalleVenta(Long idDetalleVenta) { this.idDetalleVenta = idDetalleVenta; }
+    public Integer getIdDetalleVenta() { return idDetalleVenta; }
+    public void setIdDetalleVenta(Integer idDetalleVenta) { this.idDetalleVenta = idDetalleVenta; }
 
-    public Long getIdProducto() { return idProducto; }
-    public void setIdProducto(Long idProducto) { this.idProducto = idProducto; }
+    public Integer getIdProducto() { return idProducto; }
+    public void setIdProducto(Integer idProducto) { this.idProducto = idProducto; }
 
     public String getNombreProducto() { return nombreProducto; }
     public void setNombreProducto(String nombreProducto) { this.nombreProducto = nombreProducto; }

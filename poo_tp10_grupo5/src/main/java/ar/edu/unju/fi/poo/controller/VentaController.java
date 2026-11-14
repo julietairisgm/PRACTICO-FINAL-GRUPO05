@@ -15,13 +15,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import ar.edu.unju.fi.poo.dto.CuotaResponseDTO;
 import ar.edu.unju.fi.poo.dto.DetalleVentaResponseDTO;
 import ar.edu.unju.fi.poo.dto.VentaContadoRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaFinanciadaRequestDTO;
 import ar.edu.unju.fi.poo.dto.VentaResponseDTO;
 import ar.edu.unju.fi.poo.model.Cliente;
+import ar.edu.unju.fi.poo.model.Cuota;
 import ar.edu.unju.fi.poo.model.DetalleVenta;
+import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.model.Venta;
 import ar.edu.unju.fi.poo.model.VentaContado;
+import ar.edu.unju.fi.poo.model.VentaFinanciada;
 import ar.edu.unju.fi.poo.service.VentaService;
 
 @RestController
@@ -64,12 +69,36 @@ public class VentaController {
         return ResponseEntity.ok(convertirAListaVentaDTO(ventas));
     }
 
-    // MÉTODOS AUXILIARES DE CONVERSIÓN (MAPPING)
+    // ENDPOINTS DE VENTA FINANCIADA Y CUOTAS 
+
+    // 5. POST (Registro de venta financiada)
+    @PostMapping("/financiada")
+    public ResponseEntity<VentaResponseDTO> registrarVentaFinanciada(@RequestBody VentaFinanciadaRequestDTO requestDTO) {
+        VentaFinanciada ventaEntity = convertirAFinanciadaEntity(requestDTO);
+        VentaFinanciada ventaGuardada = ventaService.registrarVentaFinanciada(ventaEntity);
+        return new ResponseEntity<>(convertirAVentaDTO(ventaGuardada), HttpStatus.CREATED);
+    }
+
+    // 6. GET (Consultar estado de cuenta de cuotas pendientes por ID de cliente)
+    @GetMapping("/cuotas/pendientes/{idCliente}")
+    public ResponseEntity<List<CuotaResponseDTO>> consultarCuotasPendientes(@PathVariable Integer idCliente) {
+        List<Cuota> cuotas = ventaService.consultarEstadoCuentaCuotasPendientes(idCliente);
+        return ResponseEntity.ok(convertirAListaCuotasDTO(cuotas));
+    }
+
+    // 7. GET (Consultar estado de cuenta por DNI/CUIT de cliente)
+    @GetMapping("/cuotas/pendientes/identificacion/{dni}")
+    public ResponseEntity<List<CuotaResponseDTO>> consultarCuotasPendientesPorDni(@PathVariable String dni) {
+        List<Cuota> cuotas = ventaService.consultarEstadoCuentaCuotasPendientesPorIdentificacion(dni);
+        return ResponseEntity.ok(convertirAListaCuotasDTO(cuotas));
+    }
+
+    // MÉTODOS AUXILIARES
+
     private VentaContado convertirARequestEntity(VentaContadoRequestDTO dto) {
         if (dto == null) return null;
         
         VentaContado venta = new VentaContado();
-        
         venta.setCodigoComprobante("COMP-" + System.currentTimeMillis());
         venta.setFechaVenta(LocalDate.now()); 
         
@@ -94,7 +123,7 @@ public class VentaController {
                 detalle.setVenta(venta);
                 
                 if (detDto.getIdProducto() != null) {
-                    ar.edu.unju.fi.poo.model.Producto producto = new ar.edu.unju.fi.poo.model.Producto();
+                    Producto producto = new Producto();
                     producto.setIdProducto(detDto.getIdProducto().intValue());
                     producto.setPrecioBase(0.0);
                     detalle.setProducto(producto);
@@ -102,13 +131,49 @@ public class VentaController {
                 
                 detalle.setCantidad(detDto.getCantidad());
                 detalle.setPrecioBaseAplicado(0.0);
-                
                 detalles.add(detalle);
             }
             
             if (venta.getDetalles() != null) {
                 venta.getDetalles().addAll(detalles);
             }
+        }
+
+        return venta;
+    }
+
+    private VentaFinanciada convertirAFinanciadaEntity(VentaFinanciadaRequestDTO dto) {
+        if (dto == null) return null;
+
+        VentaFinanciada venta = new VentaFinanciada();
+        venta.setCodigoComprobante("VF-" + System.currentTimeMillis());
+        venta.setFechaVenta(LocalDate.now());
+        venta.setPorcentajeRecargo(dto.getPorcentajeRecargo() != null ? dto.getPorcentajeRecargo() : 0.0);
+
+        if (dto.getIdCliente() != null) {
+            Cliente cliente = new Cliente();
+            cliente.setIdCliente(dto.getIdCliente().intValue());
+            venta.setCliente(cliente);
+        }
+
+        if (dto.getDetalles() != null) {
+            List<DetalleVenta> detalles = new ArrayList<>();
+            for (var detDto : dto.getDetalles()) {
+                DetalleVenta detalle = new DetalleVenta();
+                detalle.setVenta(venta);
+                
+                if (detDto.getIdProducto() != null) {
+                    Producto producto = new Producto();
+                    producto.setIdProducto(detDto.getIdProducto().intValue());
+                    producto.setPrecioBase(0.0);
+                    detalle.setProducto(producto);
+                }
+
+                detalle.setCantidad(detDto.getCantidad());
+                detalle.setPrecioBaseAplicado(0.0);
+                detalles.add(detalle);
+            }
+            venta.getDetalles().addAll(detalles);
         }
 
         return venta;
@@ -131,7 +196,6 @@ public class VentaController {
             dto.setModalidad("FINANCIADA");
         }
 
-        // Mapeo Cliente
         if (venta.getCliente() != null) {
             if (venta.getCliente().getIdCliente() != null) {
                 dto.setIdCliente(Long.valueOf(venta.getCliente().getIdCliente()));
@@ -159,7 +223,6 @@ public class VentaController {
             }
         }
         dto.setDetalles(detallesDTO);
-
         dto.setTotal(sumaSubtotales);
 
         return dto;
@@ -206,4 +269,20 @@ public class VentaController {
         }
         return dtos;
     }
+
+    private List<CuotaResponseDTO> convertirAListaCuotasDTO(List<Cuota> cuotas) {
+        List<CuotaResponseDTO> dtos = new ArrayList<>();
+        if (cuotas != null) {
+            for (Cuota cuota : cuotas) {
+                CuotaResponseDTO dto = new CuotaResponseDTO();
+                dto.setIdCuota(cuota.getIdCuota() != null ? Long.valueOf(cuota.getIdCuota()) : null);
+                dto.setNumeroCuota(cuota.getNumeroCuota());
+                dto.setImporte(cuota.getImporte());
+                dto.setFechaVencimiento(cuota.getFechaVencimiento());
+                dto.setEstado(cuota.getEstado() != null ? cuota.getEstado().name() : null);
+                dtos.add(dto);
+            }
+        }
+        return dtos;
+    } 
 }

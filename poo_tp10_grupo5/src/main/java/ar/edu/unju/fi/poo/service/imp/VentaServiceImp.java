@@ -194,6 +194,8 @@ public class VentaServiceImp implements VentaService {
         }
         if (modalidad.equalsIgnoreCase("CONTADO")) {
             return ventaRepository.findVentasContado();
+        } else if (modalidad.equalsIgnoreCase("FINANCIADO")) {
+        	return ventaRepository.findVentasFinanciadas();
         }
         throw new VentaInvalidaException("La modalidad indicada no es válida.");
     }

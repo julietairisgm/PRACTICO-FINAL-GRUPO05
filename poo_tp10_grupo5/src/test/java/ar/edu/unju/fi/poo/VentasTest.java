@@ -18,7 +18,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import ar.edu.unju.fi.poo.dto.CategoriaDto;
 import ar.edu.unju.fi.poo.dto.ProductoDto;
 import ar.edu.unju.fi.poo.exceptions.*;
-import ar.edu.unju.fi.poo.model.Categoria;
 import ar.edu.unju.fi.poo.model.Cliente;
 import ar.edu.unju.fi.poo.model.Cupon;
 import ar.edu.unju.fi.poo.model.DetalleVenta;
@@ -26,13 +25,15 @@ import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.model.TipoCliente;
 import ar.edu.unju.fi.poo.model.Venta;
 import ar.edu.unju.fi.poo.model.VentaContado;
-import ar.edu.unju.fi.poo.repository.CategoriaRepository;
+import ar.edu.unju.fi.poo.model.VentaFinanciada;
+import ar.edu.unju.fi.poo.service.CategoriaService;
 import ar.edu.unju.fi.poo.repository.CuponRepository;
 import ar.edu.unju.fi.poo.repository.ProductoRepository;
-import ar.edu.unju.fi.poo.service.ClienteService;
 import ar.edu.unju.fi.poo.service.ProductoService;
 import ar.edu.unju.fi.poo.service.VentaService;
 import jakarta.transaction.Transactional;
+import ar.edu.unju.fi.poo.repository.ClienteRepository;
+
 
 
 @SpringBootTest
@@ -48,16 +49,16 @@ public class VentasTest {
 	private ProductoRepository productoRepository;
 
 	@Autowired
-	private ClienteService clienteService;
+	private ClienteRepository clienteRepository;
 	
 	@Autowired
-    private CategoriaRepository categoriaRepository;
+    private CategoriaService categoriaService;
 	
 	@Autowired
     private CuponRepository cuponRepository;
 	
 	private Cliente cliente;
-	private Categoria categoria;
+	private CategoriaDto categoriaDto;
 	private ProductoDto producto;
 	//Provisorio mientras se implementa DTOS
 	private Producto productoEntidad;
@@ -66,15 +67,14 @@ public class VentasTest {
 	@BeforeEach
 	void setUp() {
 	    Cliente nuevoCliente = new Cliente("22334455", "Ana", "Lopez", null,"3884000000", "ana@test.com","San Salvador de Jujuy", TipoCliente.PARTICULAR);
-	    cliente = clienteService.guardarCliente(nuevoCliente);
+	    cliente = clienteRepository.save(nuevoCliente);
+
 
 	    // Crear categoría
-	    categoria = new Categoria();
-	    categoria.setNombre("Electrodomésticos");
-	    categoria = categoriaRepository.save(categoria);
+	    CategoriaDto nuevaCategoria = new CategoriaDto();
+	    nuevaCategoria.setNombre("Electrodomésticos");
 
-	    CategoriaDto categoriaDto = new CategoriaDto();
-	    categoriaDto.setIdCategoria(categoria.getIdCategoria());
+	    categoriaDto = categoriaService.crear(nuevaCategoria);
 
 	    // Crear producto
 	    ProductoDto nuevoProducto = new ProductoDto();
@@ -282,7 +282,7 @@ public class VentasTest {
 	}
 	
 	@Test
-	@DisplayName("Debe buscar ventas por modalidad")
+	@DisplayName("Debe buscar ventas por modalidad CONTADO")
 	void testBuscarPorModalidad() {
 	    DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
 
@@ -299,6 +299,24 @@ public class VentasTest {
 	    assertTrue(ventas.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
 	    assertTrue(ventaGuardada instanceof VentaContado);
 	}
+	
+
+	@Test
+	@DisplayName("Debe buscar ventas por modalidad FINANCIADO")
+	void testBuscarPorModalidadFinanciado() {
+		DetalleVenta detalle = new DetalleVenta(1, productoEntidad.getPrecioBase(), productoEntidad);
+		VentaFinanciada venta = new VentaFinanciada("VF-MOD-001", LocalDate.now(), cliente, 10.0);
+		venta.agregarDetalle(detalle);
+		
+		VentaFinanciada ventaGuardada =
+        ventaService.registrarVentaFinanciada(venta);
+
+		List<Venta> ventas = ventaService.buscarPorModalidad("FINANCIADO");
+
+		assertTrue(ventas.stream().anyMatch(v -> v.getIdVenta().equals(ventaGuardada.getIdVenta())));
+    	assertTrue(ventaGuardada instanceof VentaFinanciada);
+	}
+
 	
 	@Test
 	@DisplayName("Debe rechazar una modalidad inválida")

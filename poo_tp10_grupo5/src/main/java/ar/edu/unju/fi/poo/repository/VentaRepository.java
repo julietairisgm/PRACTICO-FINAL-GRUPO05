@@ -20,4 +20,8 @@ public interface VentaRepository extends JpaRepository<Venta, Integer> {
 
     @Query("SELECT v FROM Venta v WHERE TYPE(v) = VentaContado")
     List<Venta> findVentasContado();
+    
+    // Buscar ventas financiadas
+    @Query("SELECT v FROM Venta v WHERE TYPE(v) = VentaFinanciada")
+    List<Venta> findVentasFinanciadas();
 }

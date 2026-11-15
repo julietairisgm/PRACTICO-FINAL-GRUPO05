@@ -3,19 +3,19 @@ package ar.edu.unju.fi.poo.service;
 import java.time.LocalDate;
 import java.util.List;
 
-import ar.edu.unju.fi.poo.model.Cuota;
-import ar.edu.unju.fi.poo.model.Venta;
-import ar.edu.unju.fi.poo.model.VentaContado;
-import ar.edu.unju.fi.poo.model.VentaFinanciada;
+import ar.edu.unju.fi.poo.dto.CuotaResponseDTO;
+import ar.edu.unju.fi.poo.dto.VentaContadoRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaFinanciadaRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaResponseDTO;
 
 public interface VentaService {
-    VentaContado registrarVentaContado(VentaContado venta);
-    
-    VentaFinanciada registrarVentaFinanciada(VentaFinanciada venta);
-    List<Cuota> consultarEstadoCuentaCuotasPendientes(Integer idCliente);
-    List<Cuota> consultarEstadoCuentaCuotasPendientesPorIdentificacion(String numeroIdentificacion);
+    VentaResponseDTO registrarVentaContado(VentaContadoRequestDTO requestDTO);
+    VentaResponseDTO registrarVentaFinanciada(VentaFinanciadaRequestDTO requestDTO);
 
-    List<Venta> buscarHistorialPorCliente(Integer idCliente);
-    List<Venta> buscarPorRangoFechas(LocalDate fechaDesde, LocalDate fechaHasta);
-    List<Venta> buscarPorModalidad(String modalidad);
+    List<CuotaResponseDTO> consultarEstadoCuentaCuotasPendientes(Integer idCliente);
+    List<CuotaResponseDTO> consultarEstadoCuentaCuotasPendientesPorIdentificacion(String numeroIdentificacion);
+
+    List<VentaResponseDTO> buscarHistorialPorCliente(Integer idCliente);
+    List<VentaResponseDTO> buscarPorRangoFechas(LocalDate fechaDesde, LocalDate fechaHasta);
+    List<VentaResponseDTO> buscarPorModalidad(String modalidad);
 }

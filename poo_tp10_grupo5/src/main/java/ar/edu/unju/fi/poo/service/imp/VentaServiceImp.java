@@ -1,13 +1,39 @@
 package ar.edu.unju.fi.poo.service.imp;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ar.edu.unju.fi.poo.exceptions.*;
-import ar.edu.unju.fi.poo.model.*;
-import ar.edu.unju.fi.poo.repository.*;
+
+import ar.edu.unju.fi.poo.dto.CuotaResponseDTO;
+import ar.edu.unju.fi.poo.dto.DetalleVentaRequestDTO;
+import ar.edu.unju.fi.poo.dto.DetalleVentaResponseDTO;
+import ar.edu.unju.fi.poo.dto.VentaContadoRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaFinanciadaRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaResponseDTO;
+import ar.edu.unju.fi.poo.exceptions.ClienteNoEncontradoException;
+import ar.edu.unju.fi.poo.exceptions.CuponInvalidoException;
+import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
+import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
+import ar.edu.unju.fi.poo.exceptions.VentaFinanciadaInvalidaException;
+import ar.edu.unju.fi.poo.exceptions.VentaInvalidaException;
+import ar.edu.unju.fi.poo.model.Cliente;
+import ar.edu.unju.fi.poo.model.Cuota;
+import ar.edu.unju.fi.poo.model.Cupon;
+import ar.edu.unju.fi.poo.model.DetalleVenta;
+import ar.edu.unju.fi.poo.model.EstadoCuota;
+import ar.edu.unju.fi.poo.model.Producto;
+import ar.edu.unju.fi.poo.model.Venta;
+import ar.edu.unju.fi.poo.model.VentaContado;
+import ar.edu.unju.fi.poo.model.VentaFinanciada;
+import ar.edu.unju.fi.poo.repository.ClienteRepository;
+import ar.edu.unju.fi.poo.repository.CuotaRepository;
+import ar.edu.unju.fi.poo.repository.CuponRepository;
+import ar.edu.unju.fi.poo.repository.ProductoRepository;
+import ar.edu.unju.fi.poo.repository.VentaFinanciadaRepository;
+import ar.edu.unju.fi.poo.repository.VentaRepository;
 import ar.edu.unju.fi.poo.service.VentaService;
 
 @Service
@@ -15,13 +41,17 @@ public class VentaServiceImp implements VentaService {
 
     private final VentaRepository ventaRepository;
     private final ProductoRepository productoRepository;
+    private final ClienteRepository clienteRepository;
     private final CuponRepository cuponRepository;
     private final VentaFinanciadaRepository ventaFinanciadaRepository;
     private final CuotaRepository cuotaRepository;
 
-    public VentaServiceImp(VentaRepository ventaRepository,ProductoRepository productoRepository,CuponRepository cuponRepository,VentaFinanciadaRepository ventaFinanciadaRepository,CuotaRepository cuotaRepository){
+    public VentaServiceImp(VentaRepository ventaRepository, ProductoRepository productoRepository,
+            ClienteRepository clienteRepository, CuponRepository cuponRepository,
+            VentaFinanciadaRepository ventaFinanciadaRepository, CuotaRepository cuotaRepository) {
         this.ventaRepository = ventaRepository;
         this.productoRepository = productoRepository;
+        this.clienteRepository = clienteRepository;
         this.cuponRepository = cuponRepository;
         this.ventaFinanciadaRepository = ventaFinanciadaRepository;
         this.cuotaRepository = cuotaRepository;
@@ -31,118 +61,161 @@ public class VentaServiceImp implements VentaService {
 
     @Override
     @Transactional
-    public VentaContado registrarVentaContado(VentaContado venta) {
-        validarVenta(venta);
-        validarCupon(venta);
-        obtenerProductosYValidarDetalles(venta);
-        validarStockDisponible(venta);
+    public VentaResponseDTO registrarVentaContado(VentaContadoRequestDTO requestDTO) {
+        if (requestDTO == null) {
+            throw new VentaInvalidaException("La solicitud de venta no puede ser nula.");
+        }
+
+        VentaContado venta = new VentaContado();
+        venta.setCodigoComprobante("COMP-" + System.currentTimeMillis());
+        venta.setFechaVenta(LocalDate.now());
+        venta.setCliente(obtenerCliente(requestDTO.getIdCliente()));
+
+        if (requestDTO.getCodigoCupon() != null && !requestDTO.getCodigoCupon().isBlank()) {
+            Cupon cupon = cuponRepository.buscarPorCodigo(requestDTO.getCodigoCupon())
+                    .orElseThrow(() -> new CuponInvalidoException("El cupon no existe."));
+            if (!cupon.esValido()) {
+                throw new CuponInvalidoException("El cupon esta vencido o ya fue utilizado.");
+            }
+            venta.setCupon(cupon);
+        }
+
+        cargarDetallesYValidarStock(venta, requestDTO.getDetalles());
         venta.calcularTotal();
         actualizarStock(venta);
-        
+
         if (venta.getCupon() != null) {
             venta.getCupon().setUsado(true);
             cuponRepository.save(venta.getCupon());
         }
-        
-        return ventaRepository.save(venta);
+
+        VentaContado ventaGuardada = ventaRepository.save(venta);
+        return convertirAVentaDTO(ventaGuardada);
     }
 
     // ------------------ VENTA FINANCIADA --------------------------
 
     @Override
     @Transactional
-    public VentaFinanciada registrarVentaFinanciada(VentaFinanciada venta) {
-        validarVentaFinanciada(venta);
-        obtenerProductosYValidarDetalles(venta);
-        validarStockDisponible(venta);
-        
+    public VentaResponseDTO registrarVentaFinanciada(VentaFinanciadaRequestDTO requestDTO) {
+        if (requestDTO == null) {
+            throw new VentaFinanciadaInvalidaException("La solicitud de venta financiada no puede ser nula.");
+        }
+        if (requestDTO.getDetalles() == null || requestDTO.getDetalles().isEmpty()) {
+            throw new VentaFinanciadaInvalidaException("La venta debe tener al menos un detalle.");
+        }
+        if (requestDTO.getPorcentajeRecargo() != null && requestDTO.getPorcentajeRecargo() < 0) {
+            throw new VentaFinanciadaInvalidaException("El recargo financiero no puede ser negativo.");
+        }
+
+        VentaFinanciada venta = new VentaFinanciada();
+        venta.setCodigoComprobante("VF-" + System.currentTimeMillis());
+        venta.setFechaVenta(LocalDate.now());
+        venta.setPorcentajeRecargo(requestDTO.getPorcentajeRecargo() != null ? requestDTO.getPorcentajeRecargo() : 0.0);
+        venta.setCliente(obtenerCliente(requestDTO.getIdCliente()));
+
+        cargarDetallesYValidarStock(venta, requestDTO.getDetalles());
         venta.calcularTotal();
         venta.generarCuotas();
         actualizarStock(venta);
 
-        return ventaFinanciadaRepository.save(venta);
+        VentaFinanciada ventaGuardada = ventaFinanciadaRepository.save(venta);
+        return convertirAVentaDTO(ventaGuardada);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Cuota> consultarEstadoCuentaCuotasPendientes(Integer idCliente) {
+    public List<CuotaResponseDTO> consultarEstadoCuentaCuotasPendientes(Integer idCliente) {
         if (idCliente == null) {
             throw new VentaFinanciadaInvalidaException("El identificador del cliente no puede ser nulo.");
         }
-        return cuotaRepository.findByClienteIdAndEstado(idCliente, EstadoCuota.ADEUDADA);
+        if (!clienteRepository.existsById(idCliente)) {
+            throw new ClienteNoEncontradoException("No existe el cliente con ID: " + idCliente);
+        }
+        List<Cuota> cuotas = cuotaRepository.findByClienteIdAndEstado(idCliente, EstadoCuota.ADEUDADA);
+        return convertirAListaCuotasDTO(cuotas);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Cuota> consultarEstadoCuentaCuotasPendientesPorIdentificacion(String numeroIdentificacion) {
+    public List<CuotaResponseDTO> consultarEstadoCuentaCuotasPendientesPorIdentificacion(String numeroIdentificacion) {
         if (numeroIdentificacion == null || numeroIdentificacion.isBlank()) {
-            throw new VentaFinanciadaInvalidaException("El número de identificación del cliente es obligatorio.");
+            throw new VentaFinanciadaInvalidaException("El numero de identificación del cliente es obligatorio.");
         }
-        return cuotaRepository.findByClienteNumeroIdentificacionAndEstado(numeroIdentificacion, EstadoCuota.ADEUDADA);
+        List<Cuota> cuotas = cuotaRepository.findByClienteNumeroIdentificacionAndEstado(numeroIdentificacion, EstadoCuota.ADEUDADA);
+        return convertirAListaCuotasDTO(cuotas);
     }
 
-    // ------------------ METODOS AUXILIARES --------------------------
+    // ------------------ CONSULTAS GENERALES DE VENTAS --------------------------
 
-    private void validarVenta(Venta venta) {
-        if (venta == null) {
-            throw new VentaInvalidaException("La venta no puede ser nula.");
+    @Override
+    @Transactional(readOnly = true)
+    public List<VentaResponseDTO> buscarHistorialPorCliente(Integer idCliente) {
+        return convertirAListaVentaDTO(ventaRepository.findByCliente_IdCliente(idCliente));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VentaResponseDTO> buscarPorRangoFechas(LocalDate fechaDesde, LocalDate fechaHasta) {
+        if (fechaDesde == null || fechaHasta == null || fechaDesde.isAfter(fechaHasta)) {
+            throw new VentaInvalidaException("El rango de fechas no es valido.");
         }
-        if (venta.getDetalles() == null || venta.getDetalles().isEmpty()) {
+        return convertirAListaVentaDTO(ventaRepository.findByFechaVentaBetween(fechaDesde, fechaHasta));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VentaResponseDTO> buscarPorModalidad(String modalidad) {
+        if (modalidad == null || modalidad.isBlank()) {
+            throw new VentaInvalidaException("Debe indicar una modalidad de venta.");
+        }
+        if (modalidad.equalsIgnoreCase("CONTADO")) {
+            return convertirAListaVentaDTO(ventaRepository.findVentasContado());
+        } else if (modalidad.equalsIgnoreCase("FINANCIADO") || modalidad.equalsIgnoreCase("FINANCIADA")) {
+            return convertirAListaVentaDTO(ventaRepository.findVentasFinanciadas());
+        }
+        throw new VentaInvalidaException("La modalidad indicada no es válida.");
+    }
+
+    // ------------------ METODOS AUXILIARES DE NEGOCIO --------------------------
+
+    private Cliente obtenerCliente(Integer idCliente) {
+        if (idCliente == null) {
+            throw new VentaInvalidaException("El cliente es obligatorio.");
+        }
+        return clienteRepository.findById(idCliente)
+                .orElseThrow(() -> new ClienteNoEncontradoException("No existe el cliente con ID: " + idCliente));
+    }
+
+    private void cargarDetallesYValidarStock(Venta venta, List<DetalleVentaRequestDTO> detallesDto) {
+        if (detallesDto == null || detallesDto.isEmpty()) {
             throw new VentaInvalidaException("La venta debe tener al menos un detalle.");
         }
-    }
 
-    private void validarVentaFinanciada(VentaFinanciada venta) {
-        if (venta == null) {
-            throw new VentaFinanciadaInvalidaException("La venta no puede ser nula.");
-        }
-        if (venta.getDetalles() == null || venta.getDetalles().isEmpty()) {
-            throw new VentaFinanciadaInvalidaException("La venta debe tener al menos un detalle.");
-        }
-        if (venta.getPorcentajeRecargo() < 0) {
-            throw new VentaFinanciadaInvalidaException("El recargo financiero no puede ser negativo.");
-        }
-        if (venta.getCliente() == null) {
-            throw new VentaFinanciadaInvalidaException("El cliente es obligatorio.");
-        }
-    }
+        for (DetalleVentaRequestDTO detDto : detallesDto) {
+            if (detDto == null || detDto.getIdProducto() == null) {
+                throw new VentaInvalidaException("El detalle y el producto son obligatorios.");
+            }
+            if (detDto.getCantidad() == null || detDto.getCantidad() <= 0) {
+                throw new VentaInvalidaException("La cantidad debe ser mayor que cero.");
+            }
 
-    private void obtenerProductosYValidarDetalles(Venta venta) {
-        for (DetalleVenta detalle : venta.getDetalles()) {
-            validarDetalle(detalle);
-            Integer idProducto = detalle.getProducto().getIdProducto();
+            Integer idProducto = detDto.getIdProducto();
             Producto producto = productoRepository.findById(idProducto)
                     .orElseThrow(() -> new ProductoNoEncontradoException("No existe el producto con ID: " + idProducto));
 
-            detalle.setProducto(producto);
-            detalle.calcularSubtotal();
-        }
-    }
-
-    private void validarDetalle(DetalleVenta detalle) {
-        if (detalle == null || detalle.getProducto() == null) {
-            throw new VentaInvalidaException("El detalle y el producto son obligatorios.");
-        }
-
-        if (detalle.getCantidad() == null || detalle.getCantidad() <= 0) {
-            throw new VentaInvalidaException("La cantidad debe ser mayor que cero.");
-        }
-
-        if (detalle.getPrecioBaseAplicado() == null || detalle.getPrecioBaseAplicado() < 0) {
-            throw new VentaInvalidaException("El precio aplicado no puede ser nulo ni negativo.");
-        }
-
-        if (detalle.getProducto().getIdProducto() == null) {
-            throw new VentaInvalidaException("El producto debe tener un identificador.");
-        }
-    }
-
-    private void validarStockDisponible(Venta venta) {
-        for (DetalleVenta detalle : venta.getDetalles()) {
-            Producto producto = detalle.getProducto();
-            if (producto.getStock() < detalle.getCantidad()) {
+            if (producto.getStock() < detDto.getCantidad()) {
                 throw new StockInsuficienteException("Stock insuficiente para el producto: " + producto.getNombre());
             }
+
+            DetalleVenta detalle = new DetalleVenta();
+            detalle.setVenta(venta);
+            detalle.setProducto(producto);
+            detalle.setCantidad(detDto.getCantidad());
+            detalle.setPrecioBaseAplicado(producto.getPrecioBase());
+            detalle.calcularSubtotal();
+
+            venta.getDetalles().add(detalle);
         }
     }
 
@@ -154,45 +227,93 @@ public class VentaServiceImp implements VentaService {
         }
     }
 
-    private void validarCupon(VentaContado venta) {
-        if (venta.getCupon() == null) { return; }
+    // ------------------ CONVERSORES A DTO --------------------------
 
-        String codigo = venta.getCupon().getCodigo();
-        Cupon cupon = cuponRepository.buscarPorCodigo(codigo)
-                .orElseThrow(() -> new CuponInvalidoException("El cupon no existe."));
+    private VentaResponseDTO convertirAVentaDTO(Venta venta) {
+        if (venta == null) return null;
 
-        if (!cupon.esValido()) {
-            throw new CuponInvalidoException("El cupon esta vencido o ya fue utilizado.");
+        VentaResponseDTO dto = new VentaResponseDTO();
+        dto.setIdVenta(venta.getIdVenta());
+        dto.setFecha(venta.getFechaVenta());
+        dto.setModalidad(venta instanceof VentaContado ? "CONTADO" : "FINANCIADA");
+
+        if (venta.getCliente() != null) {
+            dto.setIdCliente(venta.getCliente().getIdCliente());
+            String nombre = venta.getCliente().getNombre() != null ? venta.getCliente().getNombre() : "";
+            String apellido = venta.getCliente().getApellido() != null ? venta.getCliente().getApellido() : "";
+            String nombreCompleto = (nombre + " " + apellido).trim();
+            dto.setNombreCliente(!nombreCompleto.isEmpty() ? nombreCompleto : null);
         }
 
-        venta.setCupon(cupon);
+        List<DetalleVentaResponseDTO> detallesDTO = new ArrayList<>();
+        double sumaSubtotales = 0.0;
+
+        if (venta.getDetalles() != null) {
+            for (DetalleVenta detalle : venta.getDetalles()) {
+                DetalleVentaResponseDTO detalleDTO = convertirADetalleDTO(detalle);
+                if (detalleDTO != null) {
+                    detallesDTO.add(detalleDTO);
+                    if (detalleDTO.getSubtotal() != null) {
+                        sumaSubtotales += detalleDTO.getSubtotal();
+                    }
+                }
+            }
+        }
+        dto.setDetalles(detallesDTO);
+        dto.setSutotal(sumaSubtotales);
+        dto.setTotal(venta.getTotal() > 0 ? venta.getTotal() : sumaSubtotales);
+        return dto;
     }
 
-    // ------------------ CONSULTAS GENERALES DE VENTAS --------------------------
+    private DetalleVentaResponseDTO convertirADetalleDTO(DetalleVenta detalle) {
+        if (detalle == null) return null;
 
-    @Override
-    public List<Venta> buscarHistorialPorCliente(Integer idCliente) {
-        return ventaRepository.findByCliente_IdCliente(idCliente);
+        DetalleVentaResponseDTO dto = new DetalleVentaResponseDTO();
+        dto.setIdDetalleVenta(detalle.getIdDetalle());
+        dto.setCantidad(detalle.getCantidad());
+
+        double precioUnitario = 0.0;
+        if (detalle.getProducto() != null) {
+            dto.setIdProducto(detalle.getProducto().getIdProducto());
+            dto.setNombreProducto(detalle.getProducto().getNombre());
+            if (detalle.getProducto().getPrecioBase() != null) {
+                precioUnitario = detalle.getProducto().getPrecioBase();
+            }
+            dto.setPrecioUnitario(precioUnitario);
+        }
+
+        if (detalle.getSubtotal() != null && detalle.getSubtotal() > 0.0) {
+            dto.setSubtotal(detalle.getSubtotal());
+        } else {
+            dto.setSubtotal(precioUnitario * (detalle.getCantidad() != null ? detalle.getCantidad() : 0));
+        }
+
+        return dto;
     }
 
-    @Override
-    public List<Venta> buscarPorRangoFechas(LocalDate fechaDesde, LocalDate fechaHasta) {
-        if (fechaDesde == null || fechaHasta == null || fechaDesde.isAfter(fechaHasta)) {
-            throw new VentaInvalidaException("El rango de fechas no es valido.");
+    private List<VentaResponseDTO> convertirAListaVentaDTO(List<Venta> ventas) {
+        List<VentaResponseDTO> dtos = new ArrayList<>();
+        if (ventas != null) {
+            for (Venta venta : ventas) {
+                dtos.add(convertirAVentaDTO(venta));
+            }
         }
-        return ventaRepository.findByFechaVentaBetween(fechaDesde, fechaHasta);
+        return dtos;
     }
 
-    @Override
-    public List<Venta> buscarPorModalidad(String modalidad) {
-        if (modalidad == null || modalidad.isBlank()) {
-            throw new VentaInvalidaException("Debe indicar una modalidad de venta.");
+    private List<CuotaResponseDTO> convertirAListaCuotasDTO(List<Cuota> cuotas) {
+        List<CuotaResponseDTO> dtos = new ArrayList<>();
+        if (cuotas != null) {
+            for (Cuota cuota : cuotas) {
+                CuotaResponseDTO dto = new CuotaResponseDTO();
+                dto.setIdCuota(cuota.getIdCuota());
+                dto.setNumeroCuota(cuota.getNumeroCuota());
+                dto.setImporte(cuota.getImporte());
+                dto.setFechaVencimiento(cuota.getFechaVencimiento());
+                dto.setEstado(cuota.getEstado() != null ? cuota.getEstado().name() : null);
+                dtos.add(dto);
+            }
         }
-        if (modalidad.equalsIgnoreCase("CONTADO")) {
-            return ventaRepository.findVentasContado();
-        } else if (modalidad.equalsIgnoreCase("FINANCIADO")) {
-        	return ventaRepository.findVentasFinanciadas();
-        }
-        throw new VentaInvalidaException("La modalidad indicada no es válida.");
+        return dtos;
     }
 }

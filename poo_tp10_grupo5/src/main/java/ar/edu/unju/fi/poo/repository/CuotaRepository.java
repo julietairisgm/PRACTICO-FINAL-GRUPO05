@@ -1,5 +1,6 @@
 package ar.edu.unju.fi.poo.repository;
 
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,4 +19,17 @@ public interface CuotaRepository extends JpaRepository<Cuota, Integer> {
     // Consulta el estado de cuenta de cuotas pendientes por numero de identificación 
     @Query("SELECT c FROM Cuota c WHERE c.ventaFinanciada.cliente.numeroIdentificacion = :numeroIdentificacion AND c.estado = :estado")
     List<Cuota> findByClienteNumeroIdentificacionAndEstado(@Param("numeroIdentificacion") String numeroIdentificacion, @Param("estado") EstadoCuota estado);
+
+    // Buscar cuotas por venta
+    @Query("SELECT c FROM Cuota c WHERE c.ventaFinanciada.idVenta = :idVenta")
+    List<Cuota> findByVenta(@Param("idVenta") Integer idVenta);
+    
+    // Buscar cuotas por venta ordenadas por número
+    @Query("SELECT c FROM Cuota c WHERE c.ventaFinanciada.idVenta = :idVenta ORDER BY c.numeroCuota ASC")
+    List<Cuota> findByVentaOrdenadas(@Param("idVenta") Integer idVenta);
+    
+    // Buscar cuotas pendientes de pago de una venta
+    @Query("SELECT c FROM Cuota c WHERE c.ventaFinanciada.idVenta = :idVenta AND c.estado IN :estados ORDER BY c.numeroCuota ASC")
+    List<Cuota> findPendientesByVenta(@Param("idVenta") Integer idVenta, @Param("estados") Collection<EstadoCuota> estados);
+    
 }

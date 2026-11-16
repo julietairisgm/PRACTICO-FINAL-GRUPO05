@@ -16,7 +16,8 @@ public class GlobalExceptionHandler {
         ClienteNoEncontradoException.class, 
         ProductoNoEncontradoException.class, 
         CategoriaNoEncontradaException.class,
-        CuotaNoEncontradaException.class
+        CuotaNoEncontradaException.class,
+        VentaNoEncontradaException.class
     })
     public ResponseEntity<ErrorResponseDTO> manejarNoEncontrado(Exception ex, HttpServletRequest request) {
         ErrorResponseDTO error = new ErrorResponseDTO(
@@ -46,7 +47,12 @@ public class GlobalExceptionHandler {
     }
 
     // 409 CONFLICT o 422 UNPROCESSABLE ENTITY 
-    @ExceptionHandler({StockInsuficienteException.class, ClienteDuplicadoException.class})
+    @ExceptionHandler({
+    	StockInsuficienteException.class, 
+    	ClienteDuplicadoException.class,
+    	VentaYaSaldadaException.class,
+        CuotaAnteriorImpagaException.class
+    })
     public ResponseEntity<ErrorResponseDTO> manejarConflictosNegocio(Exception ex, HttpServletRequest request) {
         ErrorResponseDTO error = new ErrorResponseDTO(
             HttpStatus.CONFLICT.value(),
@@ -56,7 +62,7 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
-
+    
     // 500 INTERNAL SERVER ERROR
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> manejarErroresGenerales(Exception ex, HttpServletRequest request) {

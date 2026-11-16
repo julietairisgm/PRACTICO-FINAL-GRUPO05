@@ -94,7 +94,7 @@ public class VentaFinanciadaTest {
 
         assertEquals(6, cuotas.size());
         assertEquals(110000.0 / 6, cuotas.get(0).getImporte());
-        assertEquals("ADEUDADA", cuotas.get(0).getEstado());
+        assertTrue(cuotas.stream().allMatch(c -> "ADEUDADA".equals(c.getEstado())));
 
         ProductoDto productoActualizado = productoService.buscarPorId(producto.getIdProducto());
 
@@ -180,5 +180,6 @@ public class VentaFinanciadaTest {
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(99999, 1)));
 
         assertThrows(ProductoNoEncontradoException.class, () -> ventaService.registrarVentaFinanciada(venta));
-    }
+    }   
+
 }

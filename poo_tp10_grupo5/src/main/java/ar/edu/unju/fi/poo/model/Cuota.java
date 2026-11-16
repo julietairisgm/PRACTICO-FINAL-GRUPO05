@@ -42,6 +42,12 @@ public class Cuota {
     public void marcarPagoCuota() {
         this.estado = EstadoCuota.PAGADA;
     }
+    
+    public void actualizarEstadoPorVencimiento() {
+        if (this.estado == EstadoCuota.ADEUDADA && LocalDate.now().isAfter(this.fechaVencimiento)) {
+            this.estado = EstadoCuota.VENCIDA;
+        }
+    }
 
     // Getters y Setters
 

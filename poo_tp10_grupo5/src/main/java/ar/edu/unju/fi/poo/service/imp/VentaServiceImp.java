@@ -35,6 +35,10 @@ import ar.edu.unju.fi.poo.repository.ProductoRepository;
 import ar.edu.unju.fi.poo.repository.VentaFinanciadaRepository;
 import ar.edu.unju.fi.poo.repository.VentaRepository;
 import ar.edu.unju.fi.poo.service.VentaService;
+import ar.edu.unju.fi.poo.dto.ClienteDto;
+import ar.edu.unju.fi.poo.dto.CuotaEstadoCuentaDTO;
+import ar.edu.unju.fi.poo.dto.EstadoCuentaResponseDTO;
+import ar.edu.unju.fi.poo.dto.VentaEstadoCuentaDTO;
 
 @Service
 public class VentaServiceImp implements VentaService {
@@ -315,5 +319,66 @@ public class VentaServiceImp implements VentaService {
             }
         }
         return dtos;
+    }
+ // ------------------ ESTADO DE CUENTA CLIENTE --------------------------
+
+    @Override
+    @Transactional(readOnly = true)
+    public EstadoCuentaResponseDTO consultarEstadoCuentaCliente(Integer idCliente) {
+        if (idCliente == null) {
+            throw new ClienteNoEncontradoException("El identificador del cliente no puede ser nulo.");
+        }
+
+        Cliente cliente = clienteRepository.findById(idCliente)
+                .orElseThrow(() -> new ClienteNoEncontradoException("No se encontró el cliente con ID: " + idCliente));
+
+        ClienteDto clienteDto = new ClienteDto();
+        clienteDto.setIdCliente(cliente.getIdCliente());
+        clienteDto.setNumeroIdentificacion(cliente.getNumeroIdentificacion());
+        clienteDto.setNombre(cliente.getNombre());
+        clienteDto.setApellido(cliente.getApellido());
+        clienteDto.setRazonSocial(cliente.getRazonSocial());
+        clienteDto.setTelefono(cliente.getTelefono());
+        clienteDto.setEmail(cliente.getEmail());
+        clienteDto.setDireccion(cliente.getDireccion());
+        clienteDto.setTipoCliente(cliente.getTipoCliente());
+
+        List<Venta> ventasCliente = ventaRepository.findByCliente_IdCliente(idCliente);
+        List<VentaEstadoCuentaDTO> ventasDTO = new ArrayList<>();
+
+        for (Venta venta : ventasCliente) {
+            VentaEstadoCuentaDTO ventaDto = new VentaEstadoCuentaDTO();
+            ventaDto.setIdVenta(venta.getIdVenta());
+            ventaDto.setCodigoComprobante(venta.getCodigoComprobante());
+            ventaDto.setFechaVenta(venta.getFechaVenta());
+            ventaDto.setTotal(venta.getTotal());
+
+            if (venta instanceof VentaFinanciada) {
+                ventaDto.setModalidad("FINANCIADA");
+                List<Cuota> cuotas = cuotaRepository.findByVentaOrdenadas(venta.getIdVenta());
+                List<CuotaEstadoCuentaDTO> cuotasDTO = new ArrayList<>();
+
+                for (Cuota cuota : cuotas) {
+                    cuota.actualizarEstadoPorVencimiento();
+                    CuotaEstadoCuentaDTO cuotaDto = new CuotaEstadoCuentaDTO();
+                    cuotaDto.setIdCuota(cuota.getIdCuota());
+                    cuotaDto.setNumeroCuota(cuota.getNumeroCuota());
+                    cuotaDto.setImporte(cuota.getImporte());
+                    cuotaDto.setFechaVencimiento(cuota.getFechaVencimiento());
+                    cuotaDto.setEstado(cuota.getEstado());
+                    cuotasDTO.add(cuotaDto);
+                }
+                ventaDto.setCuotas(cuotasDTO);
+            } else {
+                ventaDto.setModalidad("CONTADO");
+            }
+
+            ventasDTO.add(ventaDto);
+        }
+
+        EstadoCuentaResponseDTO response = new EstadoCuentaResponseDTO();
+        response.setCliente(clienteDto);
+        response.setVentas(ventasDTO);
+        return response;
     }
 }

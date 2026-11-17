@@ -15,15 +15,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ar.edu.unju.fi.poo.dto.ClienteDto;
 import ar.edu.unju.fi.poo.service.ClienteService;
+import ar.edu.unju.fi.poo.dto.EstadoCuentaResponseDTO;
+import ar.edu.unju.fi.poo.service.VentaService;
 
 @RestController
 @RequestMapping("/api/clientes")
 public class ClienteController {
 
     private final ClienteService service;
+    private final VentaService ventaService;
 
-    public ClienteController(ClienteService service) {
+    public ClienteController(ClienteService service, VentaService ventaService) {
         this.service = service;
+        this.ventaService = ventaService;
     }
 
     @GetMapping
@@ -39,6 +43,11 @@ public class ClienteController {
     @GetMapping("/buscar")
     public ResponseEntity<List<ClienteDto>> buscarPorNombreORazonSocial(@RequestParam String termino) {
         return ResponseEntity.ok(service.buscarPorNombreORazonSocial(termino));
+    }
+    
+    @GetMapping("/{id}/estado-cuenta")
+    public ResponseEntity<EstadoCuentaResponseDTO> obtenerEstadoCuenta(@PathVariable Integer id) {
+        return ResponseEntity.ok(ventaService.consultarEstadoCuentaCliente(id));
     }
 
     @PostMapping

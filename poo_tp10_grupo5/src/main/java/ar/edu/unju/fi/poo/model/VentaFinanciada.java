@@ -14,6 +14,10 @@ public class VentaFinanciada extends Venta {
 
     @Column(name = "porcentaje_recargo", nullable = false)
     private double porcentajeRecargo;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false, length = 20)
+    private EstadoVenta estado = EstadoVenta.PENDIENTE;
 
     @OneToMany(mappedBy = "ventaFinanciada", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Cuota> cuotas = new ArrayList<>();
@@ -29,6 +33,10 @@ public class VentaFinanciada extends Venta {
 
     public double aplicarRecargo() {
         return getSubtotal() * (porcentajeRecargo / 100.0);
+    }
+
+    public void marcarComoSaldada() {
+        this.estado = EstadoVenta.SALDADA;
     }
 
     @Override
@@ -60,9 +68,17 @@ public class VentaFinanciada extends Venta {
     public void setPorcentajeRecargo(double porcentajeRecargo) {
         this.porcentajeRecargo = porcentajeRecargo;
     }
+    
+    public EstadoVenta getEstado() {
+        return estado;
+    }
 
     public List<Cuota> getCuotas() {
         return cuotas;
+    }
+    
+    public void setEstado(EstadoVenta estado) {
+        this.estado = estado;
     }
 
     public void setCuotas(List<Cuota> cuotas) {

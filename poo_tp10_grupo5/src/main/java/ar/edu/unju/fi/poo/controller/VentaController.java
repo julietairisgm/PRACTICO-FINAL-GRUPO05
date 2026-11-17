@@ -73,4 +73,10 @@ public class VentaController {
     public ResponseEntity<List<CuotaResponseDTO>> consultarCuotasPendientesPorDni(@PathVariable String dni) {
         return ResponseEntity.ok(ventaService.consultarEstadoCuentaCuotasPendientesPorIdentificacion(dni));
     }
+    // 8. POST (Cobrar la siguiente cuota impaga de una venta financiada)
+    @PostMapping("/{idVenta}/cuotas/cobrar")
+    public ResponseEntity<CuotaResponseDTO> cobrarCuota(@PathVariable Integer idVenta) {
+        return ResponseEntity.ok(ventaService.cobrarCuota(idVenta));
+    }
+
 }

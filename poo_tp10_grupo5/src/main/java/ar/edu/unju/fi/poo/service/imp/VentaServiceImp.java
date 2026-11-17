@@ -14,16 +14,19 @@ import ar.edu.unju.fi.poo.dto.VentaContadoRequestDTO;
 import ar.edu.unju.fi.poo.dto.VentaFinanciadaRequestDTO;
 import ar.edu.unju.fi.poo.dto.VentaResponseDTO;
 import ar.edu.unju.fi.poo.exceptions.ClienteNoEncontradoException;
+import ar.edu.unju.fi.poo.exceptions.CuotaNoEncontradaException;
 import ar.edu.unju.fi.poo.exceptions.CuponInvalidoException;
 import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
 import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
 import ar.edu.unju.fi.poo.exceptions.VentaFinanciadaInvalidaException;
 import ar.edu.unju.fi.poo.exceptions.VentaInvalidaException;
+import ar.edu.unju.fi.poo.exceptions.VentaYaSaldadaException;
 import ar.edu.unju.fi.poo.model.Cliente;
 import ar.edu.unju.fi.poo.model.Cuota;
 import ar.edu.unju.fi.poo.model.Cupon;
 import ar.edu.unju.fi.poo.model.DetalleVenta;
 import ar.edu.unju.fi.poo.model.EstadoCuota;
+import ar.edu.unju.fi.poo.model.EstadoVenta;
 import ar.edu.unju.fi.poo.model.Producto;
 import ar.edu.unju.fi.poo.model.Venta;
 import ar.edu.unju.fi.poo.model.VentaContado;
@@ -96,6 +99,68 @@ public class VentaServiceImp implements VentaService {
         VentaContado ventaGuardada = ventaRepository.save(venta);
         return convertirAVentaDTO(ventaGuardada);
     }
+    
+    // ------------------ COBRO DE CUOTAS --------------------------
+
+    @Override
+    @Transactional
+    public CuotaResponseDTO cobrarCuota(Integer idVenta) {
+        if (idVenta == null) {
+            throw new VentaFinanciadaInvalidaException("El identificador de la venta no puede ser nulo.");
+        }
+
+        VentaFinanciada venta = ventaFinanciadaRepository.findById(idVenta)
+                .orElseThrow(() -> new VentaFinanciadaInvalidaException("No se encontró una venta financiada con ID: " + idVenta));
+
+        if (venta.getEstado() == EstadoVenta.SALDADA) {
+            throw new VentaYaSaldadaException("La venta con ID " + idVenta + " ya se encuentra saldada.");
+        }
+
+        List<Cuota> cuotas = cuotaRepository.findByVentaOrdenadas(idVenta);
+        if (cuotas == null || cuotas.isEmpty()) {
+            throw new CuotaNoEncontradaException("La venta no posee cuotas registradas.");
+        }
+
+        Cuota cuotaACobrar = null;
+        for (Cuota c : cuotas) {
+            c.actualizarEstadoPorVencimiento();
+            if (c.getEstado() != EstadoCuota.PAGADA) {
+                cuotaACobrar = c;
+                break; // Toma estrictamente la primera impaga en orden ascendente (no saltea cuotas)
+            }
+        }
+
+        if (cuotaACobrar == null) {
+            venta.marcarComoSaldada();
+            ventaFinanciadaRepository.save(venta);
+            throw new VentaYaSaldadaException("Todas las cuotas de la venta ya están pagadas.");
+        }
+
+        cuotaACobrar.marcarPagoCuota();
+        Cuota cuotaPagada = cuotaRepository.save(cuotaACobrar);
+
+        boolean quedanPendientes = false;
+        for (Cuota c : cuotas) {
+            if (c.getEstado() != EstadoCuota.PAGADA) {
+                quedanPendientes = true;
+                break;
+            }
+        }
+
+        if (!quedanPendientes) {
+            venta.marcarComoSaldada();
+            ventaFinanciadaRepository.save(venta);
+        }
+
+        CuotaResponseDTO dto = new CuotaResponseDTO();
+        dto.setIdCuota(cuotaPagada.getIdCuota());
+        dto.setNumeroCuota(cuotaPagada.getNumeroCuota());
+        dto.setImporte(cuotaPagada.getImporte());
+        dto.setFechaVencimiento(cuotaPagada.getFechaVencimiento());
+        dto.setEstado(cuotaPagada.getEstado().name());
+        return dto;
+    }
+
 
     // ------------------ VENTA FINANCIADA --------------------------
 

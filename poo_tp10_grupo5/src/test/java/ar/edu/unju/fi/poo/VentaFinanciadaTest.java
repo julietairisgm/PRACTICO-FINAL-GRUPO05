@@ -31,6 +31,11 @@ import ar.edu.unju.fi.poo.service.ProductoService;
 import ar.edu.unju.fi.poo.service.VentaService;
 import jakarta.transaction.Transactional;
 
+import ar.edu.unju.fi.poo.exceptions.VentaYaSaldadaException;
+import ar.edu.unju.fi.poo.model.EstadoVenta;
+import ar.edu.unju.fi.poo.model.VentaFinanciada;
+import ar.edu.unju.fi.poo.repository.VentaFinanciadaRepository;
+
 @SpringBootTest
 @Transactional
 public class VentaFinanciadaTest {
@@ -40,6 +45,9 @@ public class VentaFinanciadaTest {
 
     @Autowired
     private ProductoService productoService;
+    
+    @Autowired
+    private VentaFinanciadaRepository ventaFinanciadaRepository;
 
     @Autowired
     private ClienteService clienteService;
@@ -181,5 +189,83 @@ public class VentaFinanciadaTest {
 
         assertThrows(ProductoNoEncontradoException.class, () -> ventaService.registrarVentaFinanciada(venta));
     }   
+    
+    @Test
+    @DisplayName("Debe cobrar la primera cuota impaga antes de su vencimiento por su monto original")
+    void testCobrarPrimeraCuotaExitoso() {
+        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+        venta.setIdCliente(cliente.getIdCliente());
+        venta.setPorcentajeRecargo(20.0);
+        venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
+        VentaResponseDTO guardada = ventaService.registrarVentaFinanciada(venta);
+
+        CuotaResponseDTO cuotaPagada = ventaService.cobrarCuota(guardada.getIdVenta());
+
+        assertNotNull(cuotaPagada);
+        assertEquals(1, cuotaPagada.getNumeroCuota());
+        assertEquals(120000.0 / 6, cuotaPagada.getImporte());
+        assertEquals("PAGADA", cuotaPagada.getEstado());
+
+        // Verificar que quedan 5 pendientes y la venta sigue PENDIENTE
+        List<CuotaResponseDTO> pendientes = ventaService.consultarEstadoCuentaCuotasPendientes(cliente.getIdCliente());
+        assertEquals(5, pendientes.size());
+
+        VentaFinanciada ventaEntidad = ventaFinanciadaRepository.findById(guardada.getIdVenta()).orElseThrow();
+        assertEquals(EstadoVenta.PENDIENTE, ventaEntidad.getEstado());
+    }
+
+    @Test
+    @DisplayName("Debe cobrar cuotas respetando estrictamente el orden correlativo sin saltear")
+    void testCobrarCuotasEnOrdenCorrelativo() {
+        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+        venta.setIdCliente(cliente.getIdCliente());
+        venta.setPorcentajeRecargo(0.0);
+        venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
+        VentaResponseDTO guardada = ventaService.registrarVentaFinanciada(venta);
+
+        CuotaResponseDTO c1 = ventaService.cobrarCuota(guardada.getIdVenta());
+        CuotaResponseDTO c2 = ventaService.cobrarCuota(guardada.getIdVenta());
+        CuotaResponseDTO c3 = ventaService.cobrarCuota(guardada.getIdVenta());
+
+        assertEquals(1, c1.getNumeroCuota());
+        assertEquals(2, c2.getNumeroCuota());
+        assertEquals(3, c3.getNumeroCuota());
+
+        // La próxima pendiente en el estado de cuenta debe ser la cuota 4
+        List<CuotaResponseDTO> pendientes = ventaService.consultarEstadoCuentaCuotasPendientes(cliente.getIdCliente());
+        assertEquals(3, pendientes.size());
+        assertEquals(4, pendientes.get(0).getNumeroCuota());
+    }
+
+    @Test
+    @DisplayName("Debe marcar la venta como SALDADA al pagar la última cuota e impedir cobros posteriores")
+    void testSaldarVentaYRechazarCobroExtra() {
+        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+        venta.setIdCliente(cliente.getIdCliente());
+        venta.setPorcentajeRecargo(10.0);
+        venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
+        VentaResponseDTO guardada = ventaService.registrarVentaFinanciada(venta);
+
+        // Pagar las 6 cuotas correlativamente
+        for (int i = 1; i <= 6; i++) {
+            CuotaResponseDTO cuota = ventaService.cobrarCuota(guardada.getIdVenta());
+            assertEquals(i, cuota.getNumeroCuota());
+            assertEquals("PAGADA", cuota.getEstado());
+        }
+
+        // No deben quedar cuotas pendientes
+        List<CuotaResponseDTO> pendientes = ventaService.consultarEstadoCuentaCuotasPendientes(cliente.getIdCliente());
+        assertTrue(pendientes.isEmpty());
+
+        // El estado general de la venta debe haber cambiado automáticamente a SALDADA
+        VentaFinanciada ventaEntidad = ventaFinanciadaRepository.findById(guardada.getIdVenta()).orElseThrow();
+        assertEquals(EstadoVenta.SALDADA, ventaEntidad.getEstado());
+
+        // Intentar cobrar otra cuota sobre la venta saldada debe lanzar VentaYaSaldadaException
+        assertThrows(VentaYaSaldadaException.class, () -> {
+            ventaService.cobrarCuota(guardada.getIdVenta());
+        });
+    }
+
 
 }

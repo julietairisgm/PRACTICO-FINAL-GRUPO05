@@ -13,6 +13,8 @@ public interface VentaService {
     VentaResponseDTO registrarVentaContado(VentaContadoRequestDTO requestDTO);
     VentaResponseDTO registrarVentaFinanciada(VentaFinanciadaRequestDTO requestDTO);
     EstadoCuentaResponseDTO consultarEstadoCuentaCliente(Integer idCliente);
+    CuotaResponseDTO cobrarCuota(Integer idVenta);
+
 
     List<CuotaResponseDTO> consultarEstadoCuentaCuotasPendientes(Integer idCliente);
     List<CuotaResponseDTO> consultarEstadoCuentaCuotasPendientesPorIdentificacion(String numeroIdentificacion);

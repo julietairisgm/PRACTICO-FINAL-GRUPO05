@@ -24,7 +24,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/api/clientes")
+@RequestMapping("/api/v1/clientes")
 @Tag(name = "Clientes", description = "Gestion de clientes particulares/empresas y consulta de estado de cuenta")
 public class ClienteController {
 

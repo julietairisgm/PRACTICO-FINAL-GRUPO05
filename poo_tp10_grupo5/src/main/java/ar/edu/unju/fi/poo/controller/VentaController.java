@@ -26,7 +26,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/api/ventas")
+@RequestMapping("/api/v1/ventas")
 @Tag(name = "Ventas y Cuotas", description = "Registro de ventas al contado y financiadas, consultas de historial y cobro correlativo de cuotas")
 public class VentaController {
 

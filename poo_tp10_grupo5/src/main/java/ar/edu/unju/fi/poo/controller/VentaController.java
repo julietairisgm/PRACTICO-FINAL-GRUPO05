@@ -15,8 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import ar.edu.unju.fi.poo.dto.CuotaResponseDTO;
-import ar.edu.unju.fi.poo.dto.VentaContadoRequestDTO;
-import ar.edu.unju.fi.poo.dto.VentaFinanciadaRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaRequestDTO;
 import ar.edu.unju.fi.poo.dto.VentaResponseDTO;
 import ar.edu.unju.fi.poo.service.VentaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,15 +35,17 @@ public class VentaController {
         this.ventaService = ventaService;
     }
 
-    @Operation(summary = "Registrar venta al contado", description = "Registra una venta de contado, aplica cupon de descuento si corresponde y descuenta el stock de los productos")
+    @Operation(summary = "Registrar una venta", description = "Registra una venta al contado o financiada según la modalidad indicada. Aplica cupones o recargos cuando corresponda y descuenta el stock.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Venta al contado registrada exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Datos invalidos, cupón expirado/usado o stock insuficiente"),
+    		@ApiResponse(responseCode = "201", description = "Venta registrada exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos, cupón no válido, recargo negativo o stock insuficiente"),
             @ApiResponse(responseCode = "404", description = "Cliente o producto no encontrado")
     })
-    @PostMapping("/contado")
-    public ResponseEntity<VentaResponseDTO> registrarVentaContado(@RequestBody VentaContadoRequestDTO requestDTO) {
-        return new ResponseEntity<>(ventaService.registrarVentaContado(requestDTO), HttpStatus.CREATED);
+    @PostMapping
+    public ResponseEntity<VentaResponseDTO> registrarVenta(@RequestBody VentaRequestDTO requestDTO) {
+        VentaResponseDTO respuesta = ventaService.registrarVenta(requestDTO);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
     @Operation(summary = "Obtener historial de ventas de un cliente", description = "Lista todas las ventas (contado y financiadas) realizadas por un cliente.")
@@ -80,17 +81,6 @@ public class VentaController {
             @Parameter(description = "Modalidad de pago (CONTADO o FINANCIADA)", example = "CONTADO", required = true)
             @PathVariable String modalidad) {
         return ResponseEntity.ok(ventaService.buscarPorModalidad(modalidad));
-    }
-
-    @Operation(summary = "Registrar venta financiada", description = "Registra una venta financiada en 6 cuotas mensuales consecutivas aplicando el porcentaje de recargo indicado y descontando stock.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Venta financiada y plan de cuotas generados exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Recargo negativo, detalles vacíos o stock insuficiente"),
-            @ApiResponse(responseCode = "404", description = "Cliente o producto no encontrado")
-    })
-    @PostMapping("/financiada")
-    public ResponseEntity<VentaResponseDTO> registrarVentaFinanciada(@RequestBody VentaFinanciadaRequestDTO requestDTO) {
-        return new ResponseEntity<>(ventaService.registrarVentaFinanciada(requestDTO), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Consultar cuotas pendientes por ID de cliente", description = "Recupera el listado de cuotas adeudadas o vencidas asociadas a un cliente.")

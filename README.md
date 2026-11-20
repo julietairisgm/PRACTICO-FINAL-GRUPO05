@@ -54,6 +54,79 @@ El desarrollo aplica conceptos de programación orientada a objetos, persistenci
   <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />
 </p>
 
+## Arquitectura del proyecto
+
+La aplicación implementa una arquitectura por capas que permite separar las responsabilidades, organizar la lógica de negocio y facilitar el mantenimiento y la evolución del sistema.
+
+### Organización por capas
+
+| Capa | Responsabilidad |
+|---|---|
+| **Controller** | Recibe las solicitudes HTTP y devuelve las respuestas de la API. |
+| **Service** | Implementa la lógica de negocio y las validaciones. |
+| **Repository** | Gestiona el acceso y la persistencia de datos. |
+| **Model** | Contiene las entidades y relaciones del dominio. |
+| **DTO** | Define los objetos para recibir y responder solicitudes. |
+| **Mapper** | Realiza la conversión entre entidades y DTOs. |
+| **Exception** | Contiene las excepciones personalizadas y su tratamiento. |
+
+### Organización de servicios
+
+La lógica de negocio se distribuye en tres servicios principales:
+
+- **ClienteService:** administración y validación de clientes.
+- **ProductoService:** administración de productos y control de stock.
+- **VentaService:** coordinación y gestión de las operaciones de venta.
+
+## API REST
+
+La aplicación expone endpoints REST para interactuar con las funcionalidades del sistema.
+
+Los controladores reciben objetos de solicitud (**Request DTO**) y devuelven objetos de respuesta (**Response DTO**), evitando exponer directamente las entidades del modelo.
+
+Las operaciones se organizan en los siguientes recursos:
+
+- Clientes.
+- Productos.
+- Ventas.
+- Ventas de contado.
+- Ventas financiadas.
+- Estado de cuenta.
+- Cobro de cuotas.
+
+### Documentación interactiva con Swagger
+
+El proyecto incorpora Swagger para documentar y explorar los endpoints de la API.
+
+Con la aplicación en ejecución, se puede acceder a la interfaz interactiva desde:
+
+**[Swagger UI](http://localhost:8080/swagger-ui/index.html)**
+
+Desde esta interfaz es posible consultar los endpoints, visualizar los parámetros de entrada, conocer los formatos de respuesta y ejecutar solicitudes HTTP.
+
+## Validaciones y manejo de excepciones
+
+El sistema incorpora excepciones personalizadas y un mecanismo centralizado de tratamiento de errores mediante `GlobalExceptionHandler`.
+
+Esta implementación permite gestionar los errores de la aplicación y devolver respuestas HTTP apropiadas según el tipo de problema detectado.
+
+Entre las validaciones contempladas se encuentran:
+
+- Datos obligatorios y formatos de entrada.
+- Existencia de clientes y productos.
+- Disponibilidad de stock.
+- Validez de cupones.
+- Importes y porcentajes permitidos.
+- Condiciones para registrar ventas.
+- Condiciones para realizar el cobro de cuotas.
+
+El manejo centralizado de excepciones permite mantener respuestas consistentes y evita duplicar lógica de tratamiento de errores en los controladores.
+
+## Pruebas
+
+El proyecto incorpora pruebas automatizadas utilizando JUnit y Spring Boot Test.
+
+Las pruebas permiten verificar el comportamiento de los servicios, las reglas de negocio y las operaciones principales del sistema.
 
 ---
 

@@ -12,6 +12,7 @@ import ar.edu.unju.fi.poo.dto.DetalleVentaRequestDTO;
 import ar.edu.unju.fi.poo.dto.DetalleVentaResponseDTO;
 import ar.edu.unju.fi.poo.dto.VentaContadoRequestDTO;
 import ar.edu.unju.fi.poo.dto.VentaFinanciadaRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaRequestDTO;
 import ar.edu.unju.fi.poo.dto.VentaResponseDTO;
 import ar.edu.unju.fi.poo.exceptions.ClienteNoEncontradoException;
 import ar.edu.unju.fi.poo.exceptions.CuotaNoEncontradaException;
@@ -63,12 +64,44 @@ public class VentaServiceImp implements VentaService {
         this.ventaFinanciadaRepository = ventaFinanciadaRepository;
         this.cuotaRepository = cuotaRepository;
     }
+    
+    @Override
+    @Transactional
+    public VentaResponseDTO registrarVenta(VentaRequestDTO requestDTO) {
+
+        if (requestDTO == null || requestDTO.getModalidad() == null) {
+            throw new VentaInvalidaException("La solicitud y la modalidad son obligatorias.");
+        }
+
+        if (requestDTO.getModalidad().equalsIgnoreCase("CONTADO")) {
+
+            VentaContadoRequestDTO contadoDTO = new VentaContadoRequestDTO();
+
+            contadoDTO.setIdCliente(requestDTO.getIdCliente());
+            contadoDTO.setCodigoCupon(requestDTO.getCodigoCupon());
+            contadoDTO.setDetalles(requestDTO.getDetalles());
+
+            return registrarVentaContado(contadoDTO);
+        }
+
+        if (requestDTO.getModalidad().equalsIgnoreCase("FINANCIADA")) {
+
+            VentaFinanciadaRequestDTO financiadaDTO = new VentaFinanciadaRequestDTO();
+
+            financiadaDTO.setIdCliente(requestDTO.getIdCliente());
+            financiadaDTO.setPorcentajeRecargo(requestDTO.getPorcentajeRecargo());
+            financiadaDTO.setDetalles(requestDTO.getDetalles());
+
+            return registrarVentaFinanciada(financiadaDTO);
+        }
+
+        throw new VentaInvalidaException("La modalidad de venta no es válida.");
+    }
 
     // ------------------ VENTA CONTADO --------------------------
 
-    @Override
     @Transactional
-    public VentaResponseDTO registrarVentaContado(VentaContadoRequestDTO requestDTO) {
+    private VentaResponseDTO registrarVentaContado(VentaContadoRequestDTO requestDTO) {
         if (requestDTO == null) {
             throw new VentaInvalidaException("La solicitud de venta no puede ser nula.");
         }
@@ -164,9 +197,8 @@ public class VentaServiceImp implements VentaService {
 
     // ------------------ VENTA FINANCIADA --------------------------
 
-    @Override
     @Transactional
-    public VentaResponseDTO registrarVentaFinanciada(VentaFinanciadaRequestDTO requestDTO) {
+    private VentaResponseDTO registrarVentaFinanciada(VentaFinanciadaRequestDTO requestDTO) {
         if (requestDTO == null) {
             throw new VentaFinanciadaInvalidaException("La solicitud de venta financiada no puede ser nula.");
         }

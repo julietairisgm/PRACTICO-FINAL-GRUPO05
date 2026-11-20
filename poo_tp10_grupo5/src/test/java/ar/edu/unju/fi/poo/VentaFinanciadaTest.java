@@ -19,11 +19,12 @@ import ar.edu.unju.fi.poo.dto.ClienteDto;
 import ar.edu.unju.fi.poo.dto.CuotaResponseDTO;
 import ar.edu.unju.fi.poo.dto.DetalleVentaRequestDTO;
 import ar.edu.unju.fi.poo.dto.ProductoDto;
-import ar.edu.unju.fi.poo.dto.VentaFinanciadaRequestDTO;
+import ar.edu.unju.fi.poo.dto.VentaRequestDTO;
 import ar.edu.unju.fi.poo.dto.VentaResponseDTO;
 import ar.edu.unju.fi.poo.exceptions.ProductoNoEncontradoException;
 import ar.edu.unju.fi.poo.exceptions.StockInsuficienteException;
 import ar.edu.unju.fi.poo.exceptions.VentaFinanciadaInvalidaException;
+import ar.edu.unju.fi.poo.exceptions.VentaInvalidaException;
 import ar.edu.unju.fi.poo.model.TipoCliente;
 import ar.edu.unju.fi.poo.service.CategoriaService;
 import ar.edu.unju.fi.poo.service.ClienteService;
@@ -89,11 +90,12 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("Debe registrar una venta financiada correctamente con recargo y 6 cuotas consecutivas")
     void testRegistrarVentaFinanciadaExitoso() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(10.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
-        VentaResponseDTO guardada = ventaService.registrarVentaFinanciada(venta);
+        VentaResponseDTO guardada = ventaService.registrarVenta(venta);
 
         assertNotNull(guardada.getIdVenta());
         assertEquals(110000.0, guardada.getTotal());
@@ -112,11 +114,12 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("Debe consultar el estado de cuenta de cuotas pendientes de un cliente")
     void testConsultarEstadoCuentaCuotasPendientes() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(15.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
-        ventaService.registrarVentaFinanciada(venta);
+        ventaService.registrarVenta(venta);
 
         List<CuotaResponseDTO> cuotasPendientes = ventaService.consultarEstadoCuentaCuotasPendientes(cliente.getIdCliente());
 
@@ -128,11 +131,12 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("Debe consultar cuotas pendientes por número de identificación (DNI/CUIT)")
     void testConsultarEstadoCuentaPorIdentificacion() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(10.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
-        ventaService.registrarVentaFinanciada(venta);
+        ventaService.registrarVenta(venta);
 
         List<CuotaResponseDTO> cuotasPendientes = ventaService.consultarEstadoCuentaCuotasPendientesPorIdentificacion(cliente.getNumeroIdentificacion());
 
@@ -142,62 +146,67 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("No debe registrar una venta financiada nula")
     void testRegistrarVentaFinanciadaNula() {
-        assertThrows(VentaFinanciadaInvalidaException.class, () -> {
-            ventaService.registrarVentaFinanciada(null);
+        assertThrows(VentaInvalidaException.class, () -> {
+            ventaService.registrarVenta(null);
         });
     }
 
     @Test
     @DisplayName("No debe registrar una venta financiada sin detalles de venta")
     void testRegistrarVentaFinanciadaSinDetalles() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(10.0);
         venta.setDetalles(List.of());
-        assertThrows(VentaFinanciadaInvalidaException.class, () -> ventaService.registrarVentaFinanciada(venta));
+        assertThrows(VentaFinanciadaInvalidaException.class, () -> ventaService.registrarVenta(venta));
     }
 
     @Test
     @DisplayName("No debe registrar una venta con porcentaje de recargo negativo")
     void testRegistrarVentaConRecargoNegativo() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(-5.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
 
-        assertThrows(VentaFinanciadaInvalidaException.class, () -> ventaService.registrarVentaFinanciada(venta));
+        assertThrows(VentaFinanciadaInvalidaException.class, () -> ventaService.registrarVenta(venta));
     }
 
     @Test
     @DisplayName("No debe registrar una venta financiada si el stock es insuficiente")
     void testRegistrarVentaFinanciadaStockInsuficiente() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(10.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 15)));
 
-        assertThrows(StockInsuficienteException.class, () -> ventaService.registrarVentaFinanciada(venta));
+        assertThrows(StockInsuficienteException.class, () -> ventaService.registrarVenta(venta));
     }
 
     @Test
     @DisplayName("No debe registrar una venta con un producto inexistente")
     void testRegistrarVentaProductoInexistente() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(10.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(99999, 1)));
 
-        assertThrows(ProductoNoEncontradoException.class, () -> ventaService.registrarVentaFinanciada(venta));
+        assertThrows(ProductoNoEncontradoException.class, () -> ventaService.registrarVenta(venta));
     }   
     
     @Test
     @DisplayName("Debe cobrar la primera cuota impaga antes de su vencimiento por su monto original")
     void testCobrarPrimeraCuotaExitoso() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(20.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
-        VentaResponseDTO guardada = ventaService.registrarVentaFinanciada(venta);
+        VentaResponseDTO guardada = ventaService.registrarVenta(venta);
 
         CuotaResponseDTO cuotaPagada = ventaService.cobrarCuota(guardada.getIdVenta());
 
@@ -217,11 +226,12 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("Debe cobrar cuotas respetando estrictamente el orden correlativo sin saltear")
     void testCobrarCuotasEnOrdenCorrelativo() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(0.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
-        VentaResponseDTO guardada = ventaService.registrarVentaFinanciada(venta);
+        VentaResponseDTO guardada = ventaService.registrarVenta(venta);
 
         CuotaResponseDTO c1 = ventaService.cobrarCuota(guardada.getIdVenta());
         CuotaResponseDTO c2 = ventaService.cobrarCuota(guardada.getIdVenta());
@@ -240,11 +250,12 @@ public class VentaFinanciadaTest {
     @Test
     @DisplayName("Debe marcar la venta como SALDADA al pagar la última cuota e impedir cobros posteriores")
     void testSaldarVentaYRechazarCobroExtra() {
-        VentaFinanciadaRequestDTO venta = new VentaFinanciadaRequestDTO();
+    	VentaRequestDTO venta = new VentaRequestDTO();
+    	venta.setModalidad("FINANCIADA");
         venta.setIdCliente(cliente.getIdCliente());
         venta.setPorcentajeRecargo(10.0);
         venta.setDetalles(List.of(new DetalleVentaRequestDTO(producto.getIdProducto(), 1)));
-        VentaResponseDTO guardada = ventaService.registrarVentaFinanciada(venta);
+        VentaResponseDTO guardada = ventaService.registrarVenta(venta);
 
         // Pagar las 6 cuotas correlativamente
         for (int i = 1; i <= 6; i++) {
